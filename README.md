@@ -1,6 +1,6 @@
-# Bookmark Orchestrator
+# Recollect - Bookmark Orchestrator
 
-AI-powered bookmark manager with semantic search & summarization capabilities.
+AI-powered bookmark manager with semantic search, summarization & categorization capabilities.
 
 ## Architecture
 
@@ -35,8 +35,8 @@ bookmark-orchestrator/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/bookmark-orchestrator.git
-cd bookmark-orchestrator
+git clone https://github.com/cranberrii/recollect.git
+cd recollect
 ```
 
 2. Install dependencies:
@@ -102,10 +102,4 @@ npm run build:extension
 MIT
 
 
-### TODO - Next steps:
-1. Copy .env.example to .env and fill in your Supabase/OpenRouter credentials
-2. Run npm install in the root
-3. Run pip install -e . in backend/
-4. Apply the Supabase migration via dashboard or supabase db push
-5. Add extension icons (16x16, 48x48, 128x128 PNG) to apps/extension/icons/
-6. Start development: npm run dev:web and npm run dev:backend
+### TODO
