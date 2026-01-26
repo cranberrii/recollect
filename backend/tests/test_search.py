@@ -8,7 +8,7 @@ class TestSearchBookmarks:
     def test_search_bookmarks_success(
         self, mock_get_embedding, client, mock_supabase, sample_bookmark
     ):
-        mock_get_embedding.return_value = [0.1] * 1536
+        mock_get_embedding.return_value = [0.1] * 4096
         mock_supabase.rpc.return_value.execute.return_value = MagicMock(
             data=[{**sample_bookmark, "similarity": 0.95}]
         )
@@ -26,7 +26,7 @@ class TestSearchBookmarks:
         mock_supabase.rpc.assert_called_once_with(
             "search_bookmarks",
             {
-                "query_embedding": [0.1] * 1536,
+                "query_embedding": [0.1] * 4096,
                 "match_threshold": 0.7,
                 "match_count": 10,
                 "p_user_id": TEST_USER_ID,
@@ -37,7 +37,7 @@ class TestSearchBookmarks:
     def test_search_bookmarks_empty_results(
         self, mock_get_embedding, client, mock_supabase
     ):
-        mock_get_embedding.return_value = [0.1] * 1536
+        mock_get_embedding.return_value = [0.1] * 4096
         mock_supabase.rpc.return_value.execute.return_value = MagicMock(data=[])
 
         response = client.post(
@@ -52,7 +52,7 @@ class TestSearchBookmarks:
     def test_search_bookmarks_with_custom_params(
         self, mock_get_embedding, client, mock_supabase, sample_bookmark
     ):
-        mock_get_embedding.return_value = [0.1] * 1536
+        mock_get_embedding.return_value = [0.1] * 4096
         mock_supabase.rpc.return_value.execute.return_value = MagicMock(
             data=[{**sample_bookmark, "similarity": 0.85}]
         )
@@ -67,7 +67,7 @@ class TestSearchBookmarks:
         mock_supabase.rpc.assert_called_once_with(
             "search_bookmarks",
             {
-                "query_embedding": [0.1] * 1536,
+                "query_embedding": [0.1] * 4096,
                 "match_threshold": 0.8,
                 "match_count": 5,
                 "p_user_id": TEST_USER_ID,
@@ -86,7 +86,7 @@ class TestSearchBookmarks:
     def test_search_bookmarks_null_response(
         self, mock_get_embedding, client, mock_supabase
     ):
-        mock_get_embedding.return_value = [0.1] * 1536
+        mock_get_embedding.return_value = [0.1] * 4096
         mock_supabase.rpc.return_value.execute.return_value = MagicMock(data=None)
 
         response = client.post(

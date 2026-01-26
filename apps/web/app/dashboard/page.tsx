@@ -2,12 +2,13 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { AddBookmarkForm } from '@/components/bookmarks/add-bookmark-form';
+import { DeleteBookmarkButton } from '@/components/bookmarks/delete-bookmark-button';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: { session } } = await supabase.auth.getSession()
-  console.log(session.access_token)
+  // const { data: { session } } = await supabase.auth.getSession()
+  // console.log(session.access_token)
 
   if (!user) {
     redirect('/login');
@@ -48,14 +49,17 @@ export default async function DashboardPage() {
                 key={bookmark.id}
                 className="bg-white p-4 rounded-lg border hover:shadow-md transition"
               >
-                <a
-                  href={bookmark.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline font-medium"
-                >
-                  {bookmark.title || bookmark.url}
-                </a>
+                <div className="flex justify-between items-start gap-2">
+                  <a
+                    href={bookmark.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline font-medium"
+                  >
+                    {bookmark.title || bookmark.url}
+                  </a>
+                  <DeleteBookmarkButton bookmarkId={bookmark.id} />
+                </div>
                 {bookmark.description && (
                   <p className="text-gray-600 text-sm mt-1">
                     {bookmark.description}

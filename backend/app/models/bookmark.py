@@ -9,20 +9,20 @@ class BookmarkBase(BaseModel):
     description: str | None = None
     content: str | None = None
     favicon_url: str | None = None
-    tags: list[str] = []
+    # tags: list[str] = []
     is_favorite: bool = False
-
-
-class BookmarkCreate(BookmarkBase):
-    pass
 
 
 class BookmarkUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     content: str | None = None
-    tags: list[str] | None = None
+    # tags: list[str] | None = None
     is_favorite: bool | None = None
+
+
+class BookmarkCreate(BookmarkBase):
+    pass
 
 
 class BookmarkResponse(BookmarkBase):

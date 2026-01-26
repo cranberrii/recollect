@@ -12,18 +12,18 @@ client = AsyncOpenAI(
 
 async def generate_categories(title: str, description: str, content: str) -> list[str]:
     """Generate tags for a bookmark using LLM."""
-    prompt = f"""Analyze this bookmark and suggest 3-5 relevant tags.
+    prompt = f"""Analyze this website and suggest 3-5 relevant tags or categories.
 
 Title: {title}
 Description: {description}
-Content excerpt: {content[:1000] if content else 'N/A'}
+Content excerpt: {content[:10000] if content else 'N/A'}
 
 Return only the tags as a comma-separated list, nothing else."""
 
     response = await client.chat.completions.create(
         model=settings.llm_model,
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=100,
+        max_tokens=256,  # TODO - why no generation?
     )
 
     tags_text = response.choices[0].message.content or ""
@@ -34,16 +34,16 @@ Return only the tags as a comma-separated list, nothing else."""
 
 async def summarize_content(content: str) -> str:
     """Generate a summary of bookmark content."""
-    prompt = f"""Summarize this content in 2-3 sentences:
+    prompt = f"""Summarize the content in 2-3 sentences:
 
-{content[:4000]}"""
+{content[:10000]}"""
 
     response = await client.chat.completions.create(
         model=settings.llm_model,
         messages=[{
             "role": "user", "content": prompt
         }],
-        max_tokens=200,
+        max_tokens=256,
     )
 
     return response.choices[0].message.content or ""

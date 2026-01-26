@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export function AddBookmarkForm() {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -36,25 +38,28 @@ export function AddBookmarkForm() {
 
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!user) {
+      if (!session) {
         setMessage({ type: 'error', text: 'You must be logged in to add bookmarks' });
         return;
       }
 
-      const { error } = await supabase
-        .from('bookmarks')
-        .insert({
-          user_id: user.id,
-          url: validUrl,
-        });
+      const response = await fetch(`${API_URL}/api/v1/bookmarks`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ url: validUrl }),
+      });
 
-      if (error) {
-        if (error.code === '23505') {
+      if (!response.ok) {
+        const error = await response.json();
+        if (response.status === 409 || error.detail?.includes('duplicate')) {
           setMessage({ type: 'error', text: 'This bookmark already exists' });
         } else {
-          setMessage({ type: 'error', text: error.message });
+          setMessage({ type: 'error', text: error.detail || 'Failed to add bookmark' });
         }
         return;
       }

@@ -1,5 +1,6 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
+from app.services.scraper import ScrapedData
 from tests.conftest import TEST_USER_ID
 
 
@@ -40,11 +41,18 @@ class TestListBookmarks:
 
 
 class TestCreateBookmark:
+    @patch("app.api.v1.bookmarks.scrape_url")
     @patch("app.api.v1.bookmarks.get_embedding")
     def test_create_bookmark_success(
-        self, mock_get_embedding, client, mock_supabase, sample_bookmark
+        self, mock_get_embedding, mock_scrape_url, client, mock_supabase, sample_bookmark
     ):
-        mock_get_embedding.return_value = [0.1] * 1536
+        mock_get_embedding.return_value = [0.1] * 4096
+        mock_scrape_url.return_value = ScrapedData(
+            title="Scraped Title",
+            description="Scraped description",
+            content="Scraped content",
+            favicon_url="https://example.com/favicon.ico",
+        )
         mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
             data=[sample_bookmark]
         )
@@ -61,11 +69,18 @@ class TestCreateBookmark:
         assert response.status_code == 200
         assert response.json()["url"] == "https://example.com/"
 
+    @patch("app.api.v1.bookmarks.scrape_url")
     @patch("app.api.v1.bookmarks.get_embedding")
     def test_create_bookmark_without_optional_fields(
-        self, mock_get_embedding, client, mock_supabase, sample_bookmark
+        self, mock_get_embedding, mock_scrape_url, client, mock_supabase, sample_bookmark
     ):
-        mock_get_embedding.return_value = [0.1] * 1536
+        mock_get_embedding.return_value = [0.1] * 4096
+        mock_scrape_url.return_value = ScrapedData(
+            title="Scraped Title",
+            description="Scraped description",
+            content="Scraped content",
+            favicon_url="https://example.com/favicon.ico",
+        )
         mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
             data=[sample_bookmark]
         )
@@ -73,6 +88,96 @@ class TestCreateBookmark:
         response = client.post(
             "/api/v1/bookmarks",
             json={"url": "https://example.com"},
+        )
+
+        assert response.status_code == 200
+
+    @patch("app.api.v1.bookmarks.scrape_url")
+    @patch("app.api.v1.bookmarks.get_embedding")
+    def test_create_bookmark_uses_scraped_data_when_not_provided(
+        self, mock_get_embedding, mock_scrape_url, client, mock_supabase, sample_bookmark
+    ):
+        """Test that scraped data is used when user doesn't provide title/description."""
+        mock_get_embedding.return_value = [0.1] * 4096
+        mock_scrape_url.return_value = ScrapedData(
+            title="Scraped Title",
+            description="Scraped description",
+            content="Scraped content",
+            favicon_url="https://example.com/scraped-favicon.ico",
+        )
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+            data=[{**sample_bookmark, "title": "Scraped Title", "description": "Scraped description"}]
+        )
+
+        response = client.post(
+            "/api/v1/bookmarks",
+            json={"url": "https://example.com"},
+        )
+
+        assert response.status_code == 200
+        # Verify scraper was called
+        mock_scrape_url.assert_called_once_with("https://example.com/")
+        # Verify the insert was called with scraped data
+        insert_call = mock_supabase.table.return_value.insert.call_args
+        inserted_data = insert_call[0][0]
+        assert inserted_data["title"] == "Scraped Title"
+        assert inserted_data["description"] == "Scraped description"
+        assert inserted_data["content"] == "Scraped content"
+        assert inserted_data["favicon_url"] == "https://example.com/scraped-favicon.ico"
+
+    @patch("app.api.v1.bookmarks.scrape_url")
+    @patch("app.api.v1.bookmarks.get_embedding")
+    def test_create_bookmark_user_data_takes_precedence(
+        self, mock_get_embedding, mock_scrape_url, client, mock_supabase, sample_bookmark
+    ):
+        """Test that user-provided data takes precedence over scraped data."""
+        mock_get_embedding.return_value = [0.1] * 4096
+        mock_scrape_url.return_value = ScrapedData(
+            title="Scraped Title",
+            description="Scraped description",
+            content="Scraped content",
+            favicon_url="https://example.com/scraped-favicon.ico",
+        )
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+            data=[sample_bookmark]
+        )
+
+        response = client.post(
+            "/api/v1/bookmarks",
+            json={
+                "url": "https://example.com",
+                "title": "User Title",
+                "description": "User description",
+            },
+        )
+
+        assert response.status_code == 200
+        # Verify the insert was called with user-provided data, not scraped data
+        insert_call = mock_supabase.table.return_value.insert.call_args
+        inserted_data = insert_call[0][0]
+        assert inserted_data["title"] == "User Title"
+        assert inserted_data["description"] == "User description"
+        # Content should be from scraper since user didn't provide it
+        assert inserted_data["content"] == "Scraped content"
+
+    @patch("app.api.v1.bookmarks.scrape_url")
+    @patch("app.api.v1.bookmarks.get_embedding")
+    def test_create_bookmark_scraper_failure_doesnt_block(
+        self, mock_get_embedding, mock_scrape_url, client, mock_supabase, sample_bookmark
+    ):
+        """Test that scraper failure doesn't prevent bookmark creation."""
+        mock_get_embedding.return_value = [0.1] * 4096
+        mock_scrape_url.side_effect = Exception("Network error")
+        mock_supabase.table.return_value.insert.return_value.execute.return_value = MagicMock(
+            data=[sample_bookmark]
+        )
+
+        response = client.post(
+            "/api/v1/bookmarks",
+            json={
+                "url": "https://example.com",
+                "title": "Manual Title",
+            },
         )
 
         assert response.status_code == 200
@@ -112,7 +217,7 @@ class TestUpdateBookmark:
     def test_update_bookmark_success(
         self, mock_get_embedding, client, mock_supabase, sample_bookmark
     ):
-        mock_get_embedding.return_value = [0.1] * 1536
+        mock_get_embedding.return_value = [0.1] * 4096
         mock_supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.single.return_value.execute.return_value = MagicMock(
             data=sample_bookmark
         )
