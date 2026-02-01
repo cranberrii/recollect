@@ -1,31 +1,31 @@
 from fastapi import APIRouter
 
 from app.core.deps import CurrentUserId, SupabaseClient
-from app.models.bookmark import BookmarkResponse, SearchRequest
-from app.services.embedding import get_embedding
+from app.models.bookmark import HybridSearchRequest, HybridSearchResponse
+from app.services.search import hybrid_search
 
 router = APIRouter()
 
 
-@router.post("", response_model=list[BookmarkResponse])
+@router.post("", response_model=list[HybridSearchResponse])
 async def search_bookmarks(
-    request: SearchRequest,
+    request: HybridSearchRequest,
     user_id: CurrentUserId,
     supabase: SupabaseClient,
 ):
-    """Semantic search for bookmarks using vector similarity."""
-    # Generate embedding for the search query
-    query_embedding = await get_embedding(request.query)
+    """
+    Search bookmarks using semantic, keyword, or hybrid search.
 
-    # Call the Supabase RPC function for vector search
-    response = supabase.rpc(
-        "search_bookmarks",
-        {
-            "query_embedding": query_embedding,
-            "match_threshold": request.threshold,
-            "match_count": request.limit,
-            "p_user_id": user_id,
-        },
-    ).execute()
-
-    return response.data or []
+    Modes:
+    - SEMANTIC: Vector similarity search on embeddings
+    - KEYWORD: Category name matching (faster, no embedding)
+    - HYBRID: Combines both using Reciprocal Rank Fusion
+    """
+    return await hybrid_search(
+        query=request.query,
+        user_id=user_id,
+        supabase=supabase,
+        limit=request.limit,
+        semantic_threshold=request.threshold,
+        mode=request.mode,
+    )

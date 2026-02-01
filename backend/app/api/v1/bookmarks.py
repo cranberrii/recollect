@@ -88,7 +88,7 @@ async def create_bookmark(
         print(f"URL scraping failed for {bookmark.url}: {e}")
         # Continue without scraped data - bookmark will still be created
 
-    # Generate AI summary if description or content is available
+    # TODO - Generate AI summary if description or content is available
     if data.get("title") or data.get("content"):
         try:
             summary = await summarize_content(data.get('title') or "" + "\n\n" + data.get("content") or "")
@@ -136,6 +136,7 @@ async def create_bookmark(
             print(f"AI categories generated for {bookmark.url}: {categories}")
         except Exception as e:
             print(f"AI category generation failed for {bookmark.url}: {e}")
+    print(f"Processing completed for id: {bookmark_data.get('id')}")
     return bookmark_data
 
 
