@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build output (we build fresh in Docker)
+.next/
+out/
+
+# Environment files
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+
+# Testing
+__tests__/
+*.test.*
+*.spec.*
+coverage/
+.jest/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+
+# Misc
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

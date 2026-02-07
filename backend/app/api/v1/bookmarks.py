@@ -61,6 +61,9 @@ async def list_bookmarks(
     return response.data
 
 
+MAX_BOOKMARKS = 50
+
+
 @router.post("", response_model=BookmarkResponse)
 async def create_bookmark(
     bookmark: BookmarkCreate,
@@ -68,6 +71,19 @@ async def create_bookmark(
     supabase: SupabaseClient,
 ):
     """Create a new bookmark with automatic URL scraping and embedding."""
+    # Check bookmark limit
+    count_response = (
+        supabase.table("bookmarks")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    if count_response.count >= MAX_BOOKMARKS:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Bookmark limit reached. Maximum {MAX_BOOKMARKS} bookmarks allowed.",
+        )
+
     data = bookmark.model_dump(mode="json")
     data["user_id"] = user_id
 
@@ -88,16 +104,17 @@ async def create_bookmark(
         print(f"URL scraping failed for {bookmark.url}: {e}")
         # Continue without scraped data - bookmark will still be created
 
-    # TODO - Generate AI summary if description or content is available
-    if data.get("title") or data.get("content"):
+    # Generate AI summary if content is available
+    if data.get("content"):
         try:
-            summary = await summarize_content(data.get('title') or "" + "\n\n" + data.get("content") or "")
+            summary = await summarize_content(data.get("content"))
             if summary:
                 data["summary"] = summary
                 print(f"AI summary generated for {bookmark.url}")
         except Exception as e:
             print(f"AI summary generation failed for {bookmark.url}: {e}")
-            # TODO Error code: 521 - {'error': {'message': 'Provider returned error', 'code': 521,
+    else:
+        print(f"AI summary generation failed {bookmark.url} - no content scraped")
 
     response = supabase.table("bookmarks").insert(data).execute()
 

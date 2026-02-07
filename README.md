@@ -73,10 +73,17 @@ supabase db push
 # Run all services
 npm run dev
 
+# run turbo
+cd apps/web
+npm run dev -- --turbo
+
 # Or run individually
 npm run dev:web        # Next.js frontend (http://localhost:3000)
 npm run dev:backend    # FastAPI backend (http://localhost:8000)
 npm run dev:extension  # Chrome extension (load from apps/extension/dist)
+
+# backend
+uv run uvicorn app.main:app --reload
 ```
 
 ### Building
@@ -103,3 +110,8 @@ MIT
 
 
 ### TODO
+
+AI features: 
+- show tagging & tidy grouping?
+- search 
+- My Bookmarks: to-read, reading, completed

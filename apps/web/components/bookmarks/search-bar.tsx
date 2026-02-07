@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { Search, X, Sparkles, Zap, Type } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -26,11 +27,18 @@ interface SearchBarProps {
   onSearching: (isSearching: boolean) => void;
 }
 
+const searchModes: { value: SearchMode; label: string; icon: React.ReactNode; description: string }[] = [
+  { value: 'hybrid', label: 'Hybrid', icon: <Zap className="w-3.5 h-3.5" />, description: 'Best of both' },
+  { value: 'semantic', label: 'Semantic', icon: <Sparkles className="w-3.5 h-3.5" />, description: 'AI-powered' },
+  { value: 'keyword', label: 'Keyword', icon: <Type className="w-3.5 h-3.5" />, description: 'Exact match' },
+];
+
 export function SearchBar({ onResults, onSearching }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [mode, setMode] = useState<SearchMode>('hybrid');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const search = useCallback(async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -98,86 +106,74 @@ export function SearchBar({ onResults, onSearching }: SearchBarProps) {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg border">
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg
-              className="h-5 w-5 text-gray-400"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
+    <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 p-4 shadow-soft transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Search Input */}
+        <div
+          className={`
+            relative flex-1 flex items-center gap-3 px-4 py-3 rounded-xl
+            border transition-all duration-200 ease-out
+            ${isFocused
+              ? 'border-accent-400 ring-2 ring-accent-100 dark:ring-accent-900/50 bg-white dark:bg-surface-800'
+              : 'border-surface-200 dark:border-surface-700 bg-surface-50 dark:bg-surface-800 hover:border-surface-300 dark:hover:border-surface-600'
+            }
+          `}
+        >
+          <Search className={`w-5 h-5 flex-shrink-0 transition-colors ${isFocused ? 'text-accent-500' : 'text-surface-400'}`} />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search bookmarks..."
-            className="w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Search your bookmarks with AI..."
+            className="flex-1 bg-transparent text-surface-900 dark:text-surface-100 placeholder:text-surface-400 outline-none text-sm"
           />
-          {query && (
-            <button
-              onClick={handleClear}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-            >
-              <svg
-                className="h-5 w-5"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </button>
-          )}
           {isLoading && (
-            <div className="absolute inset-y-0 right-8 flex items-center">
-              <svg
-                className="animate-spin h-4 w-4 text-gray-400"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
+            <div className="flex-shrink-0">
+              <div className="w-5 h-5 border-2 border-accent-200 dark:border-accent-800 border-t-accent-500 rounded-full animate-spin" />
             </div>
           )}
+          {query && !isLoading && (
+            <button
+              onClick={handleClear}
+              className="flex-shrink-0 p-1 rounded-md text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value as SearchMode)}
-          className="px-3 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-        >
-          <option value="hybrid">Hybrid</option>
-          <option value="semantic">Semantic</option>
-          <option value="keyword">Keyword</option>
-        </select>
+
+        {/* Mode Selector - Segmented Control */}
+        <div className="flex bg-surface-100 dark:bg-surface-800 rounded-xl p-1 gap-1">
+          {searchModes.map((searchMode) => (
+            <button
+              key={searchMode.value}
+              onClick={() => setMode(searchMode.value)}
+              className={`
+                flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+                transition-all duration-200
+                ${mode === searchMode.value
+                  ? 'bg-white dark:bg-surface-700 text-surface-900 dark:text-surface-100 shadow-soft'
+                  : 'text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-300'
+                }
+              `}
+              title={searchMode.description}
+            >
+              <span className={mode === searchMode.value ? 'text-accent-500' : ''}>
+                {searchMode.icon}
+              </span>
+              <span className="hidden sm:inline">{searchMode.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
+
       {error && (
-        <p className="mt-3 text-sm text-red-600">{error}</p>
+        <div className="mt-3 flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+          {error}
+        </div>
       )}
     </div>
   );
