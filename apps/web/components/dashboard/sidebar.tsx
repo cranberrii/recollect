@@ -4,16 +4,11 @@ import { useState } from 'react';
 import Link from 'next/link';
 import {
   Bookmark,
-  Search,
   FolderOpen,
   Tag,
-  Clock,
-  Star,
   Archive,
-  Settings,
   HelpCircle,
   ChevronDown,
-  Plus,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -73,6 +68,7 @@ function NavItem({ icon, label, href = '#', isActive, count, badge, onClick }: N
 export function Sidebar({ activeSection = 'all', categories = [], totalBookmarks = 0 }: SidebarProps) {
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   return (
     <aside className="w-64 h-screen bg-white dark:bg-surface-900 border-r border-surface-200 dark:border-surface-800 flex flex-col overflow-hidden transition-colors duration-300">
@@ -92,14 +88,6 @@ export function Sidebar({ activeSection = 'all', categories = [], totalBookmarks
         </Link>
       </div>
 
-      {/* Quick Actions */}
-      <div className="p-3">
-        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-900 dark:bg-white hover:bg-surface-800 dark:hover:bg-surface-100 text-white dark:text-surface-900 rounded-xl text-sm font-medium transition-colors duration-200 shadow-soft hover:shadow-lifted">
-          <Plus className="w-4 h-4" />
-          <span>Add Bookmark</span>
-        </button>
-      </div>
-
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
         {/* Main Navigation */}
@@ -109,22 +97,6 @@ export function Sidebar({ activeSection = 'all', categories = [], totalBookmarks
             label="All Bookmarks"
             isActive={activeSection === 'all'}
             count={totalBookmarks}
-          />
-          <NavItem
-            icon={<Search className="w-[18px] h-[18px]" />}
-            label="Smart Search"
-            isActive={activeSection === 'search'}
-            badge="AI"
-          />
-          <NavItem
-            icon={<Clock className="w-[18px] h-[18px]" />}
-            label="Recently Added"
-            isActive={activeSection === 'recent'}
-          />
-          <NavItem
-            icon={<Star className="w-[18px] h-[18px]" />}
-            label="Favorites"
-            isActive={activeSection === 'favorites'}
           />
         </div>
 
@@ -144,26 +116,14 @@ export function Sidebar({ activeSection = 'all', categories = [], totalBookmarks
             <div className="mt-1 space-y-0.5 animate-fade-in">
               <NavItem
                 icon={<FolderOpen className="w-[18px] h-[18px]" />}
-                label="Work"
-                isActive={activeSection === 'work'}
-                count={12}
-              />
-              <NavItem
-                icon={<FolderOpen className="w-[18px] h-[18px]" />}
-                label="Personal"
-                isActive={activeSection === 'personal'}
-                count={8}
-              />
-              <NavItem
-                icon={<FolderOpen className="w-[18px] h-[18px]" />}
-                label="Reading List"
+                label="Reading"
                 isActive={activeSection === 'reading'}
-                count={24}
               />
-              <button className="flex items-center gap-3 px-3 py-2 text-sm text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 transition-colors">
-                <Plus className="w-4 h-4" />
-                <span>New Collection</span>
-              </button>
+              <NavItem
+                icon={<Archive className="w-[18px] h-[18px]" />}
+                label="Archive"
+                isActive={activeSection === 'archive'}
+              />
             </div>
           )}
         </div>
@@ -183,49 +143,37 @@ export function Sidebar({ activeSection = 'all', categories = [], totalBookmarks
           {categoriesExpanded && (
             <div className="mt-1 space-y-0.5 animate-fade-in">
               {categories.length > 0 ? (
-                categories.slice(0, 6).map((category) => (
-                  <NavItem
-                    key={category.name}
-                    icon={<Tag className="w-[18px] h-[18px]" />}
-                    label={category.name}
-                    count={category.count}
-                  />
-                ))
-              ) : (
                 <>
-                  <NavItem icon={<Tag className="w-[18px] h-[18px]" />} label="Technology" count={18} />
-                  <NavItem icon={<Tag className="w-[18px] h-[18px]" />} label="Design" count={12} />
-                  <NavItem icon={<Tag className="w-[18px] h-[18px]" />} label="Development" count={24} />
-                  <NavItem icon={<Tag className="w-[18px] h-[18px]" />} label="Articles" count={9} />
+                  {(showAllCategories ? categories : categories.slice(0, 6)).map((category) => (
+                    <NavItem
+                      key={category.name}
+                      icon={<Tag className="w-[18px] h-[18px]" />}
+                      label={category.name}
+                      count={category.count}
+                    />
+                  ))}
+                  {categories.length > 6 && (
+                    <button
+                      onClick={() => setShowAllCategories(!showAllCategories)}
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 transition-colors"
+                    >
+                      <span className="text-xs">
+                        {showAllCategories ? 'Show less' : `View all categories (${categories.length})`}
+                      </span>
+                    </button>
+                  )}
                 </>
+              ) : (
+                <p className="px-3 py-2 text-xs text-surface-400">No categories yet</p>
               )}
-              <button className="flex items-center gap-3 px-3 py-2 text-sm text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 transition-colors">
-                <span className="text-xs">View all categories</span>
-              </button>
             </div>
           )}
         </div>
 
-        {/* Divider */}
-        <div className="my-4 h-px bg-surface-100 dark:bg-surface-800" />
-
-        {/* Secondary Navigation */}
-        <div className="space-y-0.5">
-          <NavItem
-            icon={<Archive className="w-[18px] h-[18px]" />}
-            label="Archive"
-            isActive={activeSection === 'archive'}
-          />
-        </div>
       </nav>
 
       {/* Footer */}
       <div className="p-3 border-t border-surface-100 dark:border-surface-800 space-y-0.5">
-        <NavItem
-          icon={<Settings className="w-[18px] h-[18px]" />}
-          label="Settings"
-          href="/settings"
-        />
         <NavItem
           icon={<HelpCircle className="w-[18px] h-[18px]" />}
           label="Help & Support"

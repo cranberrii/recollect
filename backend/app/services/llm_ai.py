@@ -15,7 +15,7 @@ async def generate_categories(title: str, description: str, content: str) -> lis
     prompt = f"""Analyze this website and suggest 3-5 relevant tags or categories.
 
 Title: {title}
-Content excerpt: {content[:10000] if content else 'N/A'}
+Content excerpt: {content[:10000]}
 
 Return all the tags as a comma-separated list only, nothing else."""
 
@@ -28,8 +28,7 @@ Return all the tags as a comma-separated list only, nothing else."""
 
     tags_text = response.choices[0].message.content or ""
     # print(f"RAW category response - {response}")
-    tags = [tag.strip().lower() for tag in tags_text.split(",") if tag.strip()]
-
+    tags = [tag.strip().lower().replace("_", " ") for tag in tags_text.split(",") if tag.strip()]
     return tags[:5]
 
 

@@ -18,6 +18,7 @@ class BookmarkBase(BaseModel):
     favicon_url: str | None = None
     # tags: list[str] = []
     is_favorite: bool = False
+    is_archived: bool = False
 
 
 class BookmarkUpdate(BaseModel):
@@ -26,6 +27,7 @@ class BookmarkUpdate(BaseModel):
     content: str | None = None
     # tags: list[str] | None = None
     is_favorite: bool | None = None
+    is_archived: bool | None = None
 
 
 class BookmarkCreate(BookmarkBase):

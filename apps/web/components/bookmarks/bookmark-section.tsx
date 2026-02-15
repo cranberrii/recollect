@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { SearchBar } from './search-bar';
 import { AddBookmarkForm } from './add-bookmark-form';
 import { DeleteBookmarkButton } from './delete-bookmark-button';
+import { ReadingListButton } from './reading-list-button';
+import { ArchiveButton } from './archive-button';
 import { ExternalLink, Calendar, Sparkles } from 'lucide-react';
 
 interface Bookmark {
@@ -14,6 +16,8 @@ interface Bookmark {
   summary: string | null;
   favicon_url: string | null;
   created_at: string;
+  is_favorite: boolean;
+  is_archived: boolean;
   tags?: string[];
   bookmark_categories?: Array<{ categories: { name: string } }>;
 }
@@ -207,8 +211,18 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <DeleteBookmarkButton bookmarkId={bookmark.id} />
+                    <div className="flex-shrink-0 flex items-center gap-1">
+                      <ReadingListButton
+                        bookmarkId={bookmark.id}
+                        initialIsFavorite={'is_favorite' in bookmark ? (bookmark as Bookmark).is_favorite : false}
+                      />
+                      <ArchiveButton
+                        bookmarkId={bookmark.id}
+                        initialIsArchived={'is_archived' in bookmark ? (bookmark as Bookmark).is_archived : false}
+                      />
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <DeleteBookmarkButton bookmarkId={bookmark.id} />
+                      </div>
                     </div>
                   </div>
 

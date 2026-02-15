@@ -128,9 +128,6 @@ export function QuickStats({ stats }: QuickStatsProps) {
             <p className="text-sm text-surface-400">Your bookmark activity at a glance</p>
           </div>
         </div>
-        <button className="text-sm text-surface-500 hover:text-surface-700 dark:hover:text-surface-300 transition-colors">
-          View Analytics
-        </button>
       </div>
 
       {/* Stats Grid */}
