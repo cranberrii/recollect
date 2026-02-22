@@ -20,10 +20,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY apps/web ./apps/web
 
-# Set placeholder env vars for build time (replaced at runtime)
-ENV NEXT_PUBLIC_SUPABASE_URL=placeholder
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
-ENV NEXT_PUBLIC_API_URL=placeholder
+# NEXT_PUBLIC_* vars are inlined at build time by Next.js.
+# Pass via --build-arg or let .env.local provide defaults.
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ARG NEXT_PUBLIC_API_URL
 
 # Build the application
 WORKDIR /app/apps/web

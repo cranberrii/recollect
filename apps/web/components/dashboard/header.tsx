@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/theme-context';
@@ -21,6 +21,7 @@ interface HeaderProps {
     user_metadata?: {
       full_name?: string;
       avatar_url?: string;
+      picture?: string;
     };
   };
 }
@@ -33,6 +34,9 @@ export function Header({ user }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
   const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+  const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+  const [avatarError, setAvatarError] = useState(false);
+  const handleAvatarError = useCallback(() => setAvatarError(true), []);
   const initials = displayName
     .split(' ')
     .map((n) => n[0])
@@ -70,10 +74,12 @@ export function Header({ user }: HeaderProps) {
             `}
           >
             {/* Avatar */}
-            {user.user_metadata?.avatar_url ? (
+            {avatarUrl && !avatarError ? (
               <img
-                src={user.user_metadata.avatar_url}
+                src={avatarUrl}
                 alt={displayName}
+                referrerPolicy="no-referrer"
+                onError={handleAvatarError}
                 className="w-8 h-8 rounded-lg object-cover ring-2 ring-surface-200 dark:ring-surface-700"
               />
             ) : (
@@ -98,10 +104,12 @@ export function Header({ user }: HeaderProps) {
               {/* User Info */}
               <div className="px-4 py-3 border-b border-surface-100 dark:border-surface-800">
                 <div className="flex items-center gap-3">
-                  {user.user_metadata?.avatar_url ? (
+                  {avatarUrl && !avatarError ? (
                     <img
-                      src={user.user_metadata.avatar_url}
+                      src={avatarUrl}
                       alt={displayName}
+                      referrerPolicy="no-referrer"
+                      onError={handleAvatarError}
                       className="w-10 h-10 rounded-lg object-cover"
                     />
                   ) : (

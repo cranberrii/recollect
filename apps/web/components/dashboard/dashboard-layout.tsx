@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
+import { CollectionFilterProvider } from './collection-filter-context';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -26,26 +27,28 @@ export function DashboardLayout({
   activeSection = 'all',
 }: DashboardLayoutProps) {
   return (
-    <div className="flex h-screen overflow-hidden bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
-      {/* Sidebar */}
-      <Sidebar
-        activeSection={activeSection}
-        categories={categories}
-        totalBookmarks={totalBookmarks}
-      />
+    <CollectionFilterProvider>
+      <div className="flex h-screen overflow-hidden bg-surface-50 dark:bg-surface-950 transition-colors duration-300">
+        {/* Sidebar */}
+        <Sidebar
+          activeSection={activeSection}
+          categories={categories}
+          totalBookmarks={totalBookmarks}
+        />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <Header user={user} />
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <Header user={user} />
 
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-6 py-8">
-            {children}
-          </div>
-        </main>
+          {/* Page Content */}
+          <main className="flex-1 overflow-y-auto">
+            <div className="max-w-6xl mx-auto px-6 py-8">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-    </div>
+    </CollectionFilterProvider>
   );
 }

@@ -10,6 +10,7 @@ import {
   HelpCircle,
   ChevronDown,
 } from 'lucide-react';
+import { useCollectionFilter } from './collection-filter-context';
 
 interface SidebarProps {
   activeSection?: string;
@@ -69,6 +70,7 @@ export function Sidebar({ activeSection = 'all', categories = [], totalBookmarks
   const [collectionsExpanded, setCollectionsExpanded] = useState(true);
   const [categoriesExpanded, setCategoriesExpanded] = useState(true);
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const { activeFilters, toggleFilter } = useCollectionFilter();
 
   return (
     <aside className="w-64 h-screen bg-white dark:bg-surface-900 border-r border-surface-200 dark:border-surface-800 flex flex-col overflow-hidden transition-colors duration-300">
@@ -117,12 +119,14 @@ export function Sidebar({ activeSection = 'all', categories = [], totalBookmarks
               <NavItem
                 icon={<FolderOpen className="w-[18px] h-[18px]" />}
                 label="Reading"
-                isActive={activeSection === 'reading'}
+                isActive={activeFilters.has('reading')}
+                onClick={() => toggleFilter('reading')}
               />
               <NavItem
                 icon={<Archive className="w-[18px] h-[18px]" />}
                 label="Archive"
-                isActive={activeSection === 'archive'}
+                isActive={activeFilters.has('archive')}
+                onClick={() => toggleFilter('archive')}
               />
             </div>
           )}

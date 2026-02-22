@@ -7,6 +7,7 @@ import { DeleteBookmarkButton } from './delete-bookmark-button';
 import { ReadingListButton } from './reading-list-button';
 import { ArchiveButton } from './archive-button';
 import { ExternalLink, Calendar, Sparkles } from 'lucide-react';
+import { useCollectionFilter } from '@/components/dashboard/collection-filter-context';
 
 interface Bookmark {
   id: string;
@@ -65,9 +66,22 @@ function getDomain(url: string): string {
 export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const { activeFilters } = useCollectionFilter();
 
-  const displayBookmarks = searchResults !== null ? searchResults : initialBookmarks;
+  const filteredBookmarks = activeFilters.size > 0
+    ? initialBookmarks.filter((b) => {
+        if (activeFilters.has('reading') && !b.is_favorite) return false;
+        if (activeFilters.has('archive') && !b.is_archived) return false;
+        return true;
+      })
+    : initialBookmarks;
+
+  const displayBookmarks = searchResults !== null ? searchResults : filteredBookmarks;
   const showingSearchResults = searchResults !== null;
+
+  const filterLabel = activeFilters.size > 0
+    ? Array.from(activeFilters).map((f) => f === 'reading' ? 'Reading' : 'Archive').join(' & ')
+    : null;
 
   return (
     <>
@@ -76,12 +90,14 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-display font-semibold text-surface-900 dark:text-surface-100 tracking-tight">
-              {showingSearchResults ? 'Search Results' : 'Your Bookmarks'}
+              {showingSearchResults ? 'Search Results' : filterLabel ? filterLabel : 'Your Bookmarks'}
             </h2>
             <p className="text-surface-500 dark:text-surface-400 mt-1">
               {showingSearchResults
                 ? `${searchResults.length} results found`
-                : `${initialBookmarks.length} bookmarks in your collection`}
+                : filterLabel
+                  ? `${filteredBookmarks.length} bookmarks in ${filterLabel}`
+                  : `${initialBookmarks.length} bookmarks in your collection`}
             </p>
           </div>
         </div>
