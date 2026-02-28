@@ -13,7 +13,10 @@ TEST_USER_ID = "test-user-123"
 @pytest.fixture
 def mock_supabase():
     """Create a mock Supabase client."""
-    return MagicMock()
+    mock = MagicMock()
+    # Default count=0 so the bookmark limit check (count >= MAX) is always falsy
+    mock.table.return_value.select.return_value.eq.return_value.execute.return_value.count = 0
+    return mock
 
 
 @pytest.fixture

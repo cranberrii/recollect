@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException
+import asyncio
 
-from app.core.deps import CurrentUserId, SupabaseClient
+from fastapi import APIRouter, BackgroundTasks, HTTPException
+
+from app.core.deps import CurrentUserId, SupabaseClient, get_supabase_client
 from app.models.bookmark import BookmarkCreate, BookmarkResponse, BookmarkUpdate
 from app.services.embedding import get_embedding
 from app.services.llm_ai import generate_categories, summarize_content
@@ -64,13 +66,66 @@ async def list_bookmarks(
 MAX_BOOKMARKS = 50
 
 
+async def _noop():
+    return None
+
+
+async def _process_bookmark_ai(
+    bookmark_id: str,
+    user_id: str,
+    title: str,
+    description: str,
+    content: str,
+    delete_existing_categories: bool = False,
+) -> None:
+    """Run summarize, embed, and categorize in parallel, then persist results."""
+    supabase = get_supabase_client()
+    text_for_embedding = f"{title} {description} {content}".strip()
+
+    summary, embedding, categories = await asyncio.gather(
+        summarize_content(content) if content else _noop(),
+        get_embedding(text_for_embedding) if text_for_embedding else _noop(),
+        generate_categories(title=title, description=description, content=content),
+        return_exceptions=True,
+    )
+
+    if isinstance(summary, str) and summary:
+        supabase.table("bookmarks").update({"summary": summary}).eq("id", bookmark_id).execute()
+        print(f"Summary saved for {bookmark_id}")
+    elif isinstance(summary, Exception):
+        print(f"Summary generation failed for {bookmark_id}: {summary}")
+
+    if isinstance(embedding, list):
+        supabase.table("bookmark_embeddings").upsert({
+            "bookmark_id": bookmark_id,
+            "embedding": embedding,
+        }).execute()
+        print(f"Embedding saved for {bookmark_id}")
+    elif isinstance(embedding, Exception):
+        print(f"Embedding generation failed for {bookmark_id}: {embedding}")
+
+    if isinstance(categories, list):
+        if delete_existing_categories:
+            supabase.table("bookmark_categories").delete().eq("bookmark_id", bookmark_id).execute()
+        for category_name in categories:
+            category_id = get_or_create_category(supabase, user_id, category_name)
+            supabase.table("bookmark_categories").insert({
+                "bookmark_id": bookmark_id,
+                "category_id": category_id,
+            }).execute()
+        print(f"Categories saved for {bookmark_id}: {categories}")
+    elif isinstance(categories, Exception):
+        print(f"Category generation failed for {bookmark_id}: {categories}")
+
+
 @router.post("", response_model=BookmarkResponse)
 async def create_bookmark(
     bookmark: BookmarkCreate,
     user_id: CurrentUserId,
     supabase: SupabaseClient,
+    background_tasks: BackgroundTasks,
 ):
-    """Create a new bookmark with automatic URL scraping and embedding."""
+    """Create a new bookmark with automatic URL scraping and AI enrichment."""
     # Check bookmark limit
     count_response = (
         supabase.table("bookmarks")
@@ -102,19 +157,6 @@ async def create_bookmark(
         print(f"URL scraped for {bookmark.url} - {scraped.title}")
     except Exception as e:
         print(f"URL scraping failed for {bookmark.url}: {e}")
-        # Continue without scraped data - bookmark will still be created
-
-    # Generate AI summary if content is available
-    if data.get("content"):
-        try:
-            summary = await summarize_content(data.get("content"))
-            if summary:
-                data["summary"] = summary
-                print(f"AI summary generated for {bookmark.url}")
-        except Exception as e:
-            print(f"AI summary generation failed for {bookmark.url}: {e}")
-    else:
-        print(f"AI summary generation failed {bookmark.url} - no content scraped")
 
     response = supabase.table("bookmarks").insert(data).execute()
 
@@ -123,37 +165,17 @@ async def create_bookmark(
 
     bookmark_data = response.data[0]
 
-    # Generate embedding and save to bookmark_embeddings table
-    text_for_embedding = f"{data.get('title') or ''} {data.get('description') or ''} {data.get('content') or ''}"
-    if text_for_embedding.strip():
-        try:
-            embedding = await get_embedding(text_for_embedding)
-            supabase.table("bookmark_embeddings").insert({
-                "bookmark_id": bookmark_data["id"],
-                "embedding": embedding,
-            }).execute()
-            print(f"Embedding saved: {data.get('title')}")
-        except Exception as e:
-            print(f"Embedding generation error: {e}")
+    # AI enrichment (summarize + embed + categorize) runs in background
+    background_tasks.add_task(
+        _process_bookmark_ai,
+        bookmark_id=bookmark_data["id"],
+        user_id=user_id,
+        title=data.get("title") or "",
+        description=data.get("description") or "",
+        content=data.get("content") or "",
+    )
+    print(f"AI enrichment scheduled for {bookmark_data['id']}")
 
-    # Generate AI categories and save to bookmark_categories table
-    if data.get("title") or data.get("description") or data.get("content"):
-        try:
-            categories = await generate_categories(
-                title=data.get("title") or "",
-                description=data.get("description") or "",
-                content=data.get("content") or "",
-            )
-            for category_name in categories:
-                category_id = get_or_create_category(supabase, user_id, category_name)
-                supabase.table("bookmark_categories").insert({
-                    "bookmark_id": bookmark_data["id"],
-                    "category_id": category_id,
-                }).execute()
-            print(f"AI categories generated for {bookmark.url}: {categories}")
-        except Exception as e:
-            print(f"AI category generation failed for {bookmark.url}: {e}")
-    print(f"Processing completed for id: {bookmark_data.get('id')}")
     return bookmark_data
 
 
@@ -183,6 +205,7 @@ async def update_bookmark(
     bookmark: BookmarkUpdate,
     user_id: CurrentUserId,
     supabase: SupabaseClient,
+    background_tasks: BackgroundTasks,
 ):
     """Update a bookmark."""
     data = bookmark.model_dump(exclude_unset=True)
@@ -199,40 +222,18 @@ async def update_bookmark(
 
     bookmark_data = response.data[0]
 
-    # Regenerate embedding if content fields changed
+    # Re-enrich AI fields if any content fields changed
     if any(k in data for k in ["title", "description", "content"]):
-        text_for_embedding = f"{bookmark_data.get('title', '')} {bookmark_data.get('description', '')} {bookmark_data.get('content', '')}"
-        if text_for_embedding.strip():
-            try:
-                embedding = await get_embedding(text_for_embedding)
-                # Upsert embedding (update if exists, insert if not)
-                supabase.table("bookmark_embeddings").upsert({
-                    "bookmark_id": bookmark_id,
-                    "embedding": embedding,
-                }).execute()
-                print(f"Embedding updated for {bookmark_data.get('title')}")
-            except Exception as e:
-                print(f"Embedding update error: {e}")
-
-        # Regenerate AI categories if content fields changed
-        try:
-            # Delete existing categories
-            supabase.table("bookmark_categories").delete().eq("bookmark_id", bookmark_id).execute()
-            # Generate new categories
-            categories = await generate_categories(
-                title=bookmark_data.get("title") or "",
-                description=bookmark_data.get("description") or "",
-                content=bookmark_data.get("content") or "",
-            )
-            for category_name in categories:
-                category_id = get_or_create_category(supabase, user_id, category_name)
-                supabase.table("bookmark_categories").insert({
-                    "bookmark_id": bookmark_id,
-                    "category_id": category_id,
-                }).execute()
-            print(f"AI categories regenerated for bookmark {bookmark_id}: {categories}")
-        except Exception as e:
-            print(f"AI category regeneration failed for bookmark {bookmark_id}: {e}")
+        background_tasks.add_task(
+            _process_bookmark_ai,
+            bookmark_id=bookmark_id,
+            user_id=user_id,
+            title=bookmark_data.get("title") or "",
+            description=bookmark_data.get("description") or "",
+            content=bookmark_data.get("content") or "",
+            delete_existing_categories=True,
+        )
+        print(f"AI re-enrichment scheduled for {bookmark_id}")
 
     return bookmark_data
 
