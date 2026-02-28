@@ -56,7 +56,7 @@ export function ReadingListButton({ bookmarkId, initialIsFavorite }: ReadingList
       className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
         isFavorite
           ? 'text-accent-600 dark:text-accent-400 bg-accent-50 dark:bg-accent-900/30'
-          : 'text-surface-400 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-900/30 opacity-0 group-hover:opacity-100'
+          : 'text-surface-400 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-900/30 md:opacity-0 md:group-hover:opacity-100'
       }`}
     >
       <BookOpen className="w-4 h-4" />

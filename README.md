@@ -107,11 +107,3 @@ npm run build:extension
 ## License
 
 MIT
-
-
-### TODO
-
-AI features: 
-- show tagging & tidy grouping?
-- search 
-- My Bookmarks: to-read, reading, completed

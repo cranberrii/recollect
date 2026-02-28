@@ -236,7 +236,7 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
                         bookmarkId={bookmark.id}
                         initialIsArchived={'is_archived' in bookmark ? (bookmark as Bookmark).is_archived : false}
                       />
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <div className="md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
                         <DeleteBookmarkButton bookmarkId={bookmark.id} />
                       </div>
                     </div>

@@ -13,6 +13,7 @@ import {
   Sun,
   CreditCard,
   ExternalLink,
+  Menu,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,9 +25,10 @@ interface HeaderProps {
       picture?: string;
     };
   };
+  onMenuOpen?: () => void;
 }
 
-export function Header({ user }: HeaderProps) {
+export function Header({ user, onMenuOpen }: HeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -62,7 +64,18 @@ export function Header({ user }: HeaderProps) {
 
   return (
     <header className="h-16 bg-white/80 dark:bg-surface-900/80 backdrop-blur-xl border-b border-surface-200 dark:border-surface-800 sticky top-0 z-40 transition-colors duration-300">
-      <div className="h-full px-6 flex items-center justify-end gap-4">
+      <div className="h-full px-4 md:px-6 flex items-center justify-between gap-4">
+        {/* Hamburger - mobile only */}
+        <button
+          onClick={onMenuOpen}
+          aria-label="Open menu"
+          className="md:hidden p-2 rounded-xl text-surface-500 hover:text-surface-900 dark:hover:text-surface-100 hover:bg-surface-100 dark:hover:bg-surface-800 transition-all duration-200"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Right side */}
+        <div className="flex items-center gap-4 ml-auto">
         {/* Profile Dropdown */}
         <div ref={profileRef} className="relative">
           <button
@@ -161,6 +174,7 @@ export function Header({ user }: HeaderProps) {
             </div>
           )}
         </div>
+        </div>{/* end right side */}
       </div>
     </header>
   );

@@ -56,7 +56,7 @@ export function ArchiveButton({ bookmarkId, initialIsArchived }: ArchiveButtonPr
       className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
         isArchived
           ? 'text-surface-600 dark:text-surface-300 bg-surface-100 dark:bg-surface-800'
-          : 'text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 opacity-0 group-hover:opacity-100'
+          : 'text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-800 md:opacity-0 md:group-hover:opacity-100'
       }`}
     >
       <Archive className="w-4 h-4" />
