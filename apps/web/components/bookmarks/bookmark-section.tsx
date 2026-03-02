@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { SearchBar } from './search-bar';
 import { AddBookmarkForm } from './add-bookmark-form';
 import { DeleteBookmarkButton } from './delete-bookmark-button';
@@ -64,17 +65,72 @@ function getDomain(url: string): string {
 }
 
 export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const { activeFilters } = useCollectionFilter();
 
+  // Sync local state when server re-renders (e.g. after router.refresh())
+  useEffect(() => {
+    setBookmarks(initialBookmarks);
+  }, [initialBookmarks]);
+
+  // Track bookmark IDs waiting for AI enrichment: id → watch start timestamp
+  const pendingRef = useRef<Map<string, number>>(new Map());
+
+  // When bookmarks change, register recently created ones with no summary as pending
+  useEffect(() => {
+    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
+    bookmarks.forEach((b) => {
+      if (!b.summary && new Date(b.created_at).getTime() > twoMinutesAgo) {
+        if (!pendingRef.current.has(b.id)) {
+          pendingRef.current.set(b.id, Date.now());
+        }
+      }
+    });
+  }, [bookmarks]);
+
+  // Poll every 3s for pending bookmarks; update card in-place when AI data arrives
+  useEffect(() => {
+    const supabase = createClient();
+    const TIMEOUT_MS = 90_000;
+
+    const interval = setInterval(async () => {
+      if (pendingRef.current.size === 0) return;
+
+      const now = Date.now();
+      // Purge timed-out entries
+      pendingRef.current.forEach((startedAt, id) => {
+        if (now - startedAt >= TIMEOUT_MS) pendingRef.current.delete(id);
+      });
+
+      const toCheck = Array.from(pendingRef.current.keys());
+      if (toCheck.length === 0) return;
+
+      for (const id of toCheck) {
+        const { data } = await supabase
+          .from('bookmarks')
+          .select('*, bookmark_categories(categories(name))')
+          .eq('id', id)
+          .single();
+
+        if (data?.summary) {
+          pendingRef.current.delete(id);
+          setBookmarks((prev) => prev.map((b) => (b.id === id ? (data as Bookmark) : b)));
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const filteredBookmarks = activeFilters.size > 0
-    ? initialBookmarks.filter((b) => {
+    ? bookmarks.filter((b) => {
         if (activeFilters.has('reading') && !b.is_favorite) return false;
         if (activeFilters.has('archive') && !b.is_archived) return false;
         return true;
       })
-    : initialBookmarks;
+    : bookmarks;
 
   const displayBookmarks = searchResults !== null ? searchResults : filteredBookmarks;
   const showingSearchResults = searchResults !== null;
@@ -97,7 +153,7 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
                 ? `${searchResults.length} results found`
                 : filterLabel
                   ? `${filteredBookmarks.length} bookmarks in ${filterLabel}`
-                  : `${initialBookmarks.length} bookmarks in your collection`}
+                  : `${bookmarks.length} bookmarks in your collection`}
             </p>
           </div>
         </div>
@@ -257,6 +313,16 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
                             {bookmark.summary}
                           </p>
                         </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI processing indicator — shown while background enrichment is in flight */}
+                  {!bookmark.summary && pendingRef.current.has(bookmark.id) && (
+                    <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-800">
+                      <div className="flex items-center gap-2 text-surface-400 dark:text-surface-500">
+                        <Sparkles className="w-4 h-4 animate-pulse text-accent-400" />
+                        <span className="text-xs font-medium animate-pulse">AI enriching…</span>
                       </div>
                     </div>
                   )}
