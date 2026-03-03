@@ -31,6 +31,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # Build the application
 WORKDIR /app/apps/web
+# Remove .env.local so it doesn't override build-arg values
+RUN rm -f .env.local .env
 RUN npm run build
 
 # Stage 3: Production runner
