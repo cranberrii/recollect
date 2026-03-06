@@ -1,6 +1,8 @@
 import asyncio
-
+import logging
 from fastapi import APIRouter, BackgroundTasks, HTTPException
+
+logger = logging.getLogger(__name__)
 
 from app.core.deps import CurrentUserId, SupabaseClient, get_supabase_client
 from app.models.bookmark import BookmarkCreate, BookmarkResponse, BookmarkUpdate
@@ -82,40 +84,64 @@ async def _process_bookmark_ai(
     supabase = get_supabase_client()
     text_for_embedding = f"{title} {description} {content}".strip()
 
-    summary, embedding, categories = await asyncio.gather(
-        summarize_content(content) if content else _noop(),
-        get_embedding(text_for_embedding) if text_for_embedding else _noop(),
-        generate_categories(title=title, description=description, content=content),
-        return_exceptions=True,
-    )
+    AI_TIMEOUT = 360  # seconds
+    try:
+        summary, embedding, categories = await asyncio.wait_for(
+            asyncio.gather(
+                summarize_content(content) if content else _noop(),
+                get_embedding(text_for_embedding) if text_for_embedding else _noop(),
+                generate_categories(title=title, description=description, content=content),
+                return_exceptions=True,
+            ),
+            timeout=AI_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        logger.error(f"AI enrichment timed out after {AI_TIMEOUT}s for {bookmark_id}")
+        return
 
+    # Save summary
     if isinstance(summary, str) and summary:
-        supabase.table("bookmarks").update({"summary": summary}).eq("id", bookmark_id).execute()
-        print(f"Summary saved for {bookmark_id}")
+        try:
+            supabase.table("bookmarks").update({"summary": summary}).eq("id", bookmark_id).execute()
+            logger.info(f"Summary saved for {bookmark_id}")
+        except Exception as e:
+            logger.error(f"Summary save failed for {bookmark_id}: {e}")
     elif isinstance(summary, Exception):
-        print(f"Summary generation failed for {bookmark_id}: {summary}")
+        logger.error(f"Summary generation failed for {bookmark_id}: {summary}")
+    else:
+        logger.info(f"Summary skipped for {bookmark_id} (no content)")
 
+    # Save embedding
     if isinstance(embedding, list):
-        supabase.table("bookmark_embeddings").upsert({
-            "bookmark_id": bookmark_id,
-            "embedding": embedding,
-        }).execute()
-        print(f"Embedding saved for {bookmark_id}")
-    elif isinstance(embedding, Exception):
-        print(f"Embedding generation failed for {bookmark_id}: {embedding}")
-
-    if isinstance(categories, list):
-        if delete_existing_categories:
-            supabase.table("bookmark_categories").delete().eq("bookmark_id", bookmark_id).execute()
-        for category_name in categories:
-            category_id = get_or_create_category(supabase, user_id, category_name)
-            supabase.table("bookmark_categories").insert({
+        try:
+            supabase.table("bookmark_embeddings").upsert({
                 "bookmark_id": bookmark_id,
-                "category_id": category_id,
+                "embedding": embedding,
             }).execute()
-        print(f"Categories saved for {bookmark_id}: {categories}")
+            logger.info(f"Embedding saved for {bookmark_id}")
+        except Exception as e:
+            logger.error(f"Embedding save failed for {bookmark_id}: {e}")
+    elif isinstance(embedding, Exception):
+        logger.error(f"Embedding generation failed for {bookmark_id}: {embedding}")
+    else:
+        logger.info(f"Embedding skipped for {bookmark_id} (no text)")
+
+    # Save categories
+    if isinstance(categories, list):
+        try:
+            if delete_existing_categories:
+                supabase.table("bookmark_categories").delete().eq("bookmark_id", bookmark_id).execute()
+            for category_name in categories:
+                category_id = get_or_create_category(supabase, user_id, category_name)
+                supabase.table("bookmark_categories").insert({
+                    "bookmark_id": bookmark_id,
+                    "category_id": category_id,
+                }).execute()
+            logger.info(f"Categories saved for {bookmark_id}: {categories}")
+        except Exception as e:
+            logger.error(f"Categories save failed for {bookmark_id}: {e}")
     elif isinstance(categories, Exception):
-        print(f"Category generation failed for {bookmark_id}: {categories}")
+        logger.error(f"Category generation failed for {bookmark_id}: {categories}")
 
 
 @router.post("", response_model=BookmarkResponse)
@@ -154,9 +180,9 @@ async def create_bookmark(
             data["content"] = scraped.content
         if not data.get("favicon_url") and scraped.favicon_url:
             data["favicon_url"] = scraped.favicon_url
-        print(f"URL scraped for {bookmark.url} - {scraped.title}")
+        logger.info(f"URL scraped for {bookmark.url} - {scraped.title}")
     except Exception as e:
-        print(f"URL scraping failed for {bookmark.url}: {e}")
+        logger.error(f"URL scraping failed for {bookmark.url}: {e}")
 
     response = supabase.table("bookmarks").insert(data).execute()
 
@@ -174,7 +200,7 @@ async def create_bookmark(
         description=data.get("description") or "",
         content=data.get("content") or "",
     )
-    print(f"AI enrichment scheduled for {bookmark_data['id']}")
+    logger.info(f"AI enrichment scheduled for {bookmark_data['id']}")
 
     return bookmark_data
 
@@ -233,7 +259,7 @@ async def update_bookmark(
             content=bookmark_data.get("content") or "",
             delete_existing_categories=True,
         )
-        print(f"AI re-enrichment scheduled for {bookmark_id}")
+        logger.info(f"AI re-enrichment scheduled for {bookmark_id}")
 
     return bookmark_data
 

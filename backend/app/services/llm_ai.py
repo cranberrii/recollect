@@ -1,6 +1,9 @@
+import logging
 from openai import AsyncOpenAI
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 # OpenRouter client (OpenAI-compatible)
@@ -34,7 +37,7 @@ Return all the tags as a comma-separated list only, nothing else."""
 
 async def summarize_content(content: str) -> str:
     """Generate a summary of bookmark content."""
-    print(f"RAW summary content - {content[:1000]}")
+    logger.info(f"RAW summary content - {content[:1000]}")
 
     prompt = f"""Summarize the content in 2-3 sentences:
 
