@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard';
 import { QuickStats } from '@/components/dashboard/quick-stats';
 import { BookmarkSection } from '@/components/bookmarks/bookmark-section';
+import { HealthCheck } from '@/components/dashboard/health-check';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -83,6 +84,7 @@ export default async function DashboardPage() {
       totalBookmarks={bookmarks?.length || 0}
       activeSection="all"
     >
+      <HealthCheck />
       <QuickStats stats={stats} />
       <BookmarkSection initialBookmarks={bookmarks || []} />
     </DashboardLayout>
