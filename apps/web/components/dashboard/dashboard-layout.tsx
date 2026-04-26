@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
+import { GuestBanner } from './guest-banner';
 import { CollectionFilterProvider } from './collection-filter-context';
 
 interface DashboardLayoutProps {
@@ -17,6 +18,7 @@ interface DashboardLayoutProps {
   categories?: Array<{ name: string; count: number }>;
   totalBookmarks?: number;
   activeSection?: string;
+  isAnonymous?: boolean;
 }
 
 export function DashboardLayout({
@@ -25,6 +27,7 @@ export function DashboardLayout({
   categories = [],
   totalBookmarks = 0,
   activeSection = 'all',
+  isAnonymous = false,
 }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -60,11 +63,12 @@ export function DashboardLayout({
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <Header user={user} onMenuOpen={() => setMobileSidebarOpen(true)} />
+          <Header user={user} onMenuOpen={() => setMobileSidebarOpen(true)} isAnonymous={isAnonymous} />
 
           {/* Page Content */}
           <main className="flex-1 overflow-y-auto">
             <div className="max-w-6xl mx-auto px-3 py-4 sm:px-4 sm:py-6 md:px-6 md:py-8">
+              {isAnonymous && <GuestBanner />}
               {children}
             </div>
           </main>

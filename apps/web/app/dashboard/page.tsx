@@ -83,6 +83,7 @@ export default async function DashboardPage() {
       categories={categories}
       totalBookmarks={bookmarks?.length || 0}
       activeSection="all"
+      isAnonymous={user.is_anonymous === true}
     >
       <HealthCheck />
       <QuickStats stats={stats} />

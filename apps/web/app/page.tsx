@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Bookmark, Search, Sparkles, ArrowRight } from 'lucide-react';
+import { TryItOutButton } from '@/components/landing/try-it-out-button';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -49,7 +50,7 @@ export default async function Home() {
         </div>
 
         {/* CTA */}
-        <div className="mt-10 opacity-0 animate-slide-up stagger-3">
+        <div className="mt-10 flex flex-col sm:flex-row items-center gap-3 opacity-0 animate-slide-up stagger-3">
           <Link
             href="/login"
             className="group inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-surface-900 dark:bg-white text-white dark:text-surface-900 font-semibold text-sm shadow-soft hover:shadow-lifted hover:-translate-y-0.5 transition-all duration-300"
@@ -57,6 +58,7 @@ export default async function Home() {
             Get Started
             <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Link>
+          <TryItOutButton />
         </div>
       </div>
     </main>

@@ -14,6 +14,7 @@ import {
   CreditCard,
   ExternalLink,
   Menu,
+  UserPlus,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -26,16 +27,17 @@ interface HeaderProps {
     };
   };
   onMenuOpen?: () => void;
+  isAnonymous?: boolean;
 }
 
-export function Header({ user, onMenuOpen }: HeaderProps) {
+export function Header({ user, onMenuOpen, isAnonymous = false }: HeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const supabase = createClient();
   const { theme, toggleTheme } = useTheme();
 
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
+  const displayName = isAnonymous ? 'Guest' : (user.user_metadata?.full_name || user.email?.split('@')[0] || 'User');
   const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
   const [avatarError, setAvatarError] = useState(false);
   const handleAvatarError = useCallback(() => setAvatarError(true), []);
@@ -105,7 +107,7 @@ export function Header({ user, onMenuOpen }: HeaderProps) {
                 {displayName}
               </p>
               <p className="text-xs text-surface-400 leading-tight">
-                Free Plan
+                {isAnonymous ? 'Guest session' : 'Free Plan'}
               </p>
             </div>
             <ChevronDown className={`w-4 h-4 text-surface-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
@@ -135,33 +137,53 @@ export function Header({ user, onMenuOpen }: HeaderProps) {
                       {displayName}
                     </p>
                     <p className="text-xs text-surface-400 truncate">
-                      {user.email}
+                      {isAnonymous ? 'Guest session' : user.email}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Menu Items */}
-              <div className="py-2">
-                <DropdownItem icon={<User className="w-4 h-4" />} label="Profile" />
-                <DropdownItem icon={<Settings className="w-4 h-4" />} label="Settings" />
-                <DropdownItem icon={<CreditCard className="w-4 h-4" />} label="Billing" badge="Upgrade" />
-                <DropdownItem
-                  icon={theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                  label={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                  onClick={toggleTheme}
-                  isToggle
-                  isToggled={theme === 'dark'}
-                />
-              </div>
+              {isAnonymous ? (
+                <div className="py-2">
+                  <DropdownItem
+                    icon={<UserPlus className="w-4 h-4" />}
+                    label="Create Account"
+                    onClick={() => router.push('/login')}
+                    highlight
+                  />
+                  <DropdownItem
+                    icon={theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    label={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                    onClick={toggleTheme}
+                    isToggle
+                    isToggled={theme === 'dark'}
+                  />
+                </div>
+              ) : (
+                <div className="py-2">
+                  <DropdownItem icon={<User className="w-4 h-4" />} label="Profile" />
+                  <DropdownItem icon={<Settings className="w-4 h-4" />} label="Settings" />
+                  <DropdownItem icon={<CreditCard className="w-4 h-4" />} label="Billing" badge="Upgrade" />
+                  <DropdownItem
+                    icon={theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                    label={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                    onClick={toggleTheme}
+                    isToggle
+                    isToggled={theme === 'dark'}
+                  />
+                </div>
+              )}
 
-              <div className="border-t border-surface-100 dark:border-surface-800 py-2">
-                <DropdownItem
-                  icon={<ExternalLink className="w-4 h-4" />}
-                  label="Install Extension"
-                  external
-                />
-              </div>
+              {!isAnonymous && (
+                <div className="border-t border-surface-100 dark:border-surface-800 py-2">
+                  <DropdownItem
+                    icon={<ExternalLink className="w-4 h-4" />}
+                    label="Install Extension"
+                    external
+                  />
+                </div>
+              )}
 
               <div className="border-t border-surface-100 dark:border-surface-800 py-2">
                 <DropdownItem
@@ -188,10 +210,11 @@ interface DropdownItemProps {
   isToggled?: boolean;
   external?: boolean;
   danger?: boolean;
+  highlight?: boolean;
   onClick?: () => void;
 }
 
-function DropdownItem({ icon, label, badge, isToggle, isToggled, external, danger, onClick }: DropdownItemProps) {
+function DropdownItem({ icon, label, badge, isToggle, isToggled, external, danger, highlight, onClick }: DropdownItemProps) {
   return (
     <button
       onClick={onClick}
@@ -200,11 +223,13 @@ function DropdownItem({ icon, label, badge, isToggle, isToggled, external, dange
         transition-colors duration-150
         ${danger
           ? 'text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50'
+          : highlight
+          ? 'text-accent-600 dark:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-950/30 font-medium'
           : 'text-surface-700 dark:text-surface-300 hover:bg-surface-50 dark:hover:bg-surface-800'
         }
       `}
     >
-      <span className={danger ? 'text-red-500' : 'text-surface-400'}>{icon}</span>
+      <span className={danger ? 'text-red-500' : highlight ? 'text-accent-500' : 'text-surface-400'}>{icon}</span>
       <span className="flex-1 text-left">{label}</span>
       {badge && (
         <span className="text-2xs font-semibold px-1.5 py-0.5 rounded bg-accent-100 dark:bg-accent-900/50 text-accent-700 dark:text-accent-400">

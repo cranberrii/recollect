@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -12,8 +12,15 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsGuest(user?.is_anonymous === true);
+    });
+  }, [supabase]);
 
   const handleGoogleSignIn = async () => {
     setError('');
@@ -26,6 +33,20 @@ export default function LoginPage() {
         },
       });
       if (error) throw error;
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  const handleTryItOut = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      router.push('/dashboard');
+      router.refresh();
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -166,6 +187,18 @@ export default function LoginPage() {
               {isSignUp ? 'Sign In' : 'Sign Up'}
             </button>
           </p>
+
+          {!isGuest && (
+            <p className="mt-3 text-center text-sm text-surface-400 dark:text-surface-500">
+              <button
+                onClick={handleTryItOut}
+                disabled={loading}
+                className="hover:text-surface-600 dark:hover:text-surface-300 transition-colors disabled:opacity-50"
+              >
+                Try without signing in
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </main>
