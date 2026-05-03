@@ -13,7 +13,7 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Fetch bookmarks with categories
+  // Fetch bookmarks with categories (limited list for display)
   const { data: bookmarks } = await supabase
     .from('bookmarks')
     .select(`
@@ -26,6 +26,33 @@ export default async function DashboardPage() {
     `)
     .order('created_at', { ascending: false })
     .limit(20);
+
+  // Date boundaries for stats
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  // Total count (not capped by display limit)
+  const { count: totalBookmarks } = await supabase
+    .from('bookmarks')
+    .select('*', { count: 'exact', head: true });
+
+  const { count: recentlyAdded } = await supabase
+    .from('bookmarks')
+    .select('*', { count: 'exact', head: true })
+    .gt('created_at', oneDayAgo.toISOString());
+
+  const { count: thisWeekAdded } = await supabase
+    .from('bookmarks')
+    .select('*', { count: 'exact', head: true })
+    .gt('created_at', oneWeekAgo.toISOString());
+
+  const { count: lastWeekAdded } = await supabase
+    .from('bookmarks')
+    .select('*', { count: 'exact', head: true })
+    .gt('created_at', twoWeeksAgo.toISOString())
+    .lte('created_at', oneWeekAgo.toISOString());
 
   // Fetch category counts for sidebar
   const { data: categoryData } = await supabase
@@ -51,29 +78,12 @@ export default async function DashboardPage() {
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
 
-  // Calculate stats
-  const now = new Date();
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-
-  const recentlyAdded = bookmarks?.filter(
-    (b) => new Date(b.created_at) > oneDayAgo
-  ).length || 0;
-
-  const thisWeekAdded = bookmarks?.filter(
-    (b) => new Date(b.created_at) > oneWeekAgo
-  ).length || 0;
-
-  // For last week, we'd need more data - using estimate for now
-  const lastWeekAdded = Math.max(0, thisWeekAdded - 2);
-
   const stats = {
-    totalBookmarks: bookmarks?.length || 0,
+    totalBookmarks: totalBookmarks ?? 0,
     categoriesCount: categories.length,
-    recentlyAdded,
-    thisWeekAdded,
-    lastWeekAdded,
+    recentlyAdded: recentlyAdded ?? 0,
+    thisWeekAdded: thisWeekAdded ?? 0,
+    lastWeekAdded: lastWeekAdded ?? 0,
     topCategory: categories[0]?.name,
   };
 
@@ -81,7 +91,7 @@ export default async function DashboardPage() {
     <DashboardLayout
       user={user}
       categories={categories}
-      totalBookmarks={bookmarks?.length || 0}
+      totalBookmarks={totalBookmarks ?? 0}
       activeSection="all"
       isAnonymous={user.is_anonymous === true}
     >

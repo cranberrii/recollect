@@ -4,7 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 logger = logging.getLogger(__name__)
 
-from app.core.deps import CurrentUserId, SupabaseClient, get_supabase_client
+from app.core.deps import CurrentUser, CurrentUserId, SupabaseClient, get_supabase_client
 from app.models.bookmark import BookmarkCreate, BookmarkResponse, BookmarkUpdate
 from app.services.embedding import get_embedding
 from app.services.llm_ai import generate_categories, summarize_content
@@ -66,6 +66,7 @@ async def list_bookmarks(
 
 
 MAX_BOOKMARKS = 50
+MAX_BOOKMARKS_GUEST = 10
 
 
 async def _noop():
@@ -147,11 +148,15 @@ async def _process_bookmark_ai(
 @router.post("", response_model=BookmarkResponse)
 async def create_bookmark(
     bookmark: BookmarkCreate,
-    user_id: CurrentUserId,
+    current_user: CurrentUser,
     supabase: SupabaseClient,
     background_tasks: BackgroundTasks,
 ):
     """Create a new bookmark with automatic URL scraping and AI enrichment."""
+    user_id = current_user.id
+    is_guest = current_user.is_anonymous or False
+    limit = MAX_BOOKMARKS_GUEST if is_guest else MAX_BOOKMARKS
+
     # Check bookmark limit
     count_response = (
         supabase.table("bookmarks")
@@ -159,10 +164,10 @@ async def create_bookmark(
         .eq("user_id", user_id)
         .execute()
     )
-    if count_response.count >= MAX_BOOKMARKS:
+    if count_response.count >= limit:
         raise HTTPException(
             status_code=403,
-            detail=f"Bookmark limit reached. Maximum {MAX_BOOKMARKS} bookmarks allowed.",
+            detail=f"Bookmark limit reached. Maximum {limit} bookmarks allowed{' for guest accounts' if is_guest else ''}.",
         )
 
     data = bookmark.model_dump(mode="json")
