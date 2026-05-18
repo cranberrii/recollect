@@ -64,6 +64,16 @@ function getDomain(url: string): string {
   }
 }
 
+const PENDING_WINDOW_MS = 180_000;
+
+function isEnriched(b: Pick<Bookmark, 'summary' | 'bookmark_categories'>): boolean {
+  return !!b.summary && !!b.bookmark_categories && b.bookmark_categories.length > 0;
+}
+
+function isPending(b: Bookmark): boolean {
+  return !isEnriched(b) && Date.now() - new Date(b.created_at).getTime() < PENDING_WINDOW_MS;
+}
+
 export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
@@ -75,36 +85,19 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
     setBookmarks(initialBookmarks);
   }, [initialBookmarks]);
 
-  // Track bookmark IDs waiting for AI enrichment: id → watch start timestamp
-  const pendingRef = useRef<Map<string, number>>(new Map());
-
-  // When bookmarks change, register recently created ones with no summary as pending
+  // Mirror latest bookmarks into a ref so the poll interval reads fresh data
+  // without resetting on every state change.
+  const bookmarksRef = useRef(bookmarks);
   useEffect(() => {
-    const twoMinutesAgo = Date.now() - 2 * 60 * 1000;
-    bookmarks.forEach((b) => {
-      if (!b.summary && new Date(b.created_at).getTime() > twoMinutesAgo) {
-        if (!pendingRef.current.has(b.id)) {
-          pendingRef.current.set(b.id, Date.now());
-        }
-      }
-    });
+    bookmarksRef.current = bookmarks;
   }, [bookmarks]);
 
   // Poll every 3s for pending bookmarks; update card in-place when AI data arrives
   useEffect(() => {
     const supabase = createClient();
-    const TIMEOUT_MS = 90_000;
 
     const interval = setInterval(async () => {
-      if (pendingRef.current.size === 0) return;
-
-      const now = Date.now();
-      // Purge timed-out entries
-      pendingRef.current.forEach((startedAt, id) => {
-        if (now - startedAt >= TIMEOUT_MS) pendingRef.current.delete(id);
-      });
-
-      const toCheck = Array.from(pendingRef.current.keys());
+      const toCheck = bookmarksRef.current.filter(isPending).map((b) => b.id);
       if (toCheck.length === 0) return;
 
       for (const id of toCheck) {
@@ -114,8 +107,7 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
           .eq('id', id)
           .single();
 
-        if (data?.summary) {
-          pendingRef.current.delete(id);
+        if (data && isEnriched(data as Bookmark)) {
           setBookmarks((prev) => prev.map((b) => (b.id === id ? (data as Bookmark) : b)));
         }
       }
@@ -318,7 +310,7 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
                   )}
 
                   {/* AI processing indicator — shown while background enrichment is in flight */}
-                  {!bookmark.summary && pendingRef.current.has(bookmark.id) && (
+                  {regularBookmark && isPending(regularBookmark) && (
                     <div className="mt-4 pt-4 border-t border-surface-100 dark:border-surface-800">
                       <div className="flex items-center gap-2 text-surface-400 dark:text-surface-500">
                         <Sparkles className="w-4 h-4 animate-pulse text-accent-400" />

@@ -22,7 +22,7 @@ npm run dev
 
 # Run services individually
 npm run dev:web               # Next.js on http://localhost:3000
-npm run dev:backend           # FastAPI on http://localhost:8000
+uv run uvicorn app.main:app --reload  # FastAPI on http://localhost:8000 (run from backend/)
 npm run dev:extension         # Vite watch, load from apps/extension/dist
 
 # Backend alternative (from backend/)
@@ -139,3 +139,18 @@ Key tables: `bookmarks`, `bookmark_embeddings`, `categories`, `bookmark_categori
 
 - `backend/Dockerfile`: Python 3.12-slim, uses `uv`, exposes `$PORT` (default 8000)
 - `apps/web/Dockerfile`: Node 20-alpine, multi-stage build with `output: 'standalone'`, exposes 3000
+
+## Deployment (Google Cloud Run)
+
+- GCP project: `recollect-prod-515`, region: `asia-northeast1`
+- Artifact Registry: `asia-northeast1-docker.pkg.dev/recollect-prod-515/recollect`
+- `deploy/setup.sh` — one-time GCP setup (service accounts, secrets, registry)
+- `deploy/deploy.sh` — build, push, and deploy both services
+- `deploy/services/backend.yaml` / `web.yaml` — Cloud Run service specs
+- Prod models (override defaults): `EMBEDDING_MODEL=qwen/qwen3-embedding-8b`, `LLM_MODEL=nvidia/nemotron-3-nano-30b-a3b:free`
+
+## Guest Users
+
+- Anonymous Supabase sessions are supported; use `CurrentUser` (not `CurrentUserId`) when you need `user.is_anonymous`
+- Guest bookmark limit: `MAX_BOOKMARKS_GUEST = 10` (defined in `bookmarks.py`)
+- Frontend components: `components/dashboard/guest-banner.tsx`, `components/landing/try-it-out-button.tsx`
