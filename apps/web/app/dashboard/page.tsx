@@ -97,7 +97,7 @@ export default async function DashboardPage() {
     >
       <HealthCheck />
       <QuickStats stats={stats} />
-      <BookmarkSection initialBookmarks={bookmarks || []} />
+      <BookmarkSection initialBookmarks={bookmarks || []} totalBookmarks={totalBookmarks ?? 0} />
     </DashboardLayout>
   );
 }

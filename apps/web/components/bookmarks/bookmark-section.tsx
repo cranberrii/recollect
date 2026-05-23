@@ -40,6 +40,7 @@ interface SearchResult {
 
 interface BookmarkSectionProps {
   initialBookmarks: Bookmark[];
+  totalBookmarks?: number;
 }
 
 function formatDate(dateString: string | null): string {
@@ -74,7 +75,7 @@ function isPending(b: Bookmark): boolean {
   return !isEnriched(b) && Date.now() - new Date(b.created_at).getTime() < PENDING_WINDOW_MS;
 }
 
-export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
+export function BookmarkSection({ initialBookmarks, totalBookmarks }: BookmarkSectionProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -145,7 +146,7 @@ export function BookmarkSection({ initialBookmarks }: BookmarkSectionProps) {
                 ? `${searchResults.length} results found`
                 : filterLabel
                   ? `${filteredBookmarks.length} bookmarks in ${filterLabel}`
-                  : `${bookmarks.length} bookmarks in your collection`}
+                  : `${totalBookmarks ?? bookmarks.length} bookmarks in your collection`}
             </p>
           </div>
         </div>
