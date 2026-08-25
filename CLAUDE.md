@@ -154,3 +154,13 @@ Key tables: `bookmarks`, `bookmark_embeddings`, `categories`, `bookmark_categori
 - Anonymous Supabase sessions are supported; use `CurrentUser` (not `CurrentUserId`) when you need `user.is_anonymous`
 - Guest bookmark limit: `MAX_BOOKMARKS_GUEST = 10` (defined in `bookmarks.py`)
 - Frontend components: `components/dashboard/guest-banner.tsx`, `components/landing/try-it-out-button.tsx`
+
+<!-- OPENWIKI:START -->
+
+## OpenWiki
+
+This repository uses OpenWiki for recurring code documentation. Start with `openwiki/quickstart.md`, then follow its links to architecture, workflows, domain concepts, operations, integrations, testing guidance, and source maps.
+
+The scheduled OpenWiki GitHub Actions workflow refreshes the repository wiki. Do not hand-edit generated OpenWiki pages unless explicitly asked; prefer updating source code/docs and letting OpenWiki regenerate.
+
+<!-- OPENWIKI:END -->
