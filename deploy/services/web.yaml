@@ -1,0 +1,24 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: recollect-web
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/min-scale: "0"
+        run.googleapis.com/max-scale: "5"
+    spec:
+      containerConcurrency: 200
+      timeoutSeconds: 60
+      containers:
+        - image: ${REGISTRY}/web:${IMAGE_TAG}
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          # Note: NEXT_PUBLIC_* vars are baked into the JS bundle at docker build time
+          # (via --build-arg in deploy.sh). Setting them here has no effect on
+          # client-side code. Only include genuine server-side runtime vars here.

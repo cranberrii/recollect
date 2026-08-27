@@ -1,0 +1,46 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: recollect-backend
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/min-scale: "0"
+        run.googleapis.com/max-scale: "10"
+    spec:
+      containerConcurrency: 100
+      timeoutSeconds: 300
+      # Service account created by setup.sh with secretmanager.secretAccessor role
+      serviceAccountName: recollect-backend@${PROJECT_ID}.iam.gserviceaccount.com
+      containers:
+        - image: ${REGISTRY}/backend:${IMAGE_TAG}
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          env:
+            - name: SUPABASE_URL
+              value: "${SUPABASE_URL}"
+            # CORS_ORIGINS: plain URL or comma-separated list, e.g. https://foo.run.app,https://bar.com
+            - name: CORS_ORIGINS
+              value: "${CORS_ORIGINS}"
+            - name: OPENROUTER_BASE_URL
+              value: "https://openrouter.ai/api/v1"
+            - name: EMBEDDING_MODEL
+              value: "qwen/qwen3-embedding-8b"
+            - name: LLM_MODEL
+              value: "nvidia/nemotron-3-nano-30b-a3b:free"
+            # Secrets fetched from Secret Manager at runtime
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: SUPABASE_SERVICE_ROLE_KEY
+                  key: latest
+            - name: OPENROUTER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: OPENROUTER_API_KEY
+                  key: latest
