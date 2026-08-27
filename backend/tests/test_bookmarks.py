@@ -1,7 +1,6 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.services.scraper import ScrapedData
-from tests.conftest import TEST_USER_ID
 
 
 class TestListBookmarks:

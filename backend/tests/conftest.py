@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
-from app.core.deps import get_current_user_id, get_supabase_client
+from app.core.deps import get_current_user, get_current_user_id, get_supabase_client
 from app.main import app
 
 TEST_USER_ID = "test-user-123"
@@ -26,10 +27,15 @@ def client(mock_supabase):
     async def mock_user_id():
         return TEST_USER_ID
 
+    async def mock_user():
+        # create_bookmark reads current_user.id and .is_anonymous
+        return SimpleNamespace(id=TEST_USER_ID, is_anonymous=False)
+
     def mock_supabase_client():
         return mock_supabase
 
     app.dependency_overrides[get_current_user_id] = mock_user_id
+    app.dependency_overrides[get_current_user] = mock_user
     app.dependency_overrides[get_supabase_client] = mock_supabase_client
 
     yield TestClient(app)
