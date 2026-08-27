@@ -42,10 +42,10 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci
-      - run: npm run lint --workspace=apps/web
-      # A successful build is the frontend's test signal (no unit tests yet).
-      # NEXT_PUBLIC_* placeholders just satisfy the build; real values are baked
-      # in at deploy time by deploy.sh.
+      # No `next lint`: the repo has no ESLint setup and Next 14 needs ESLint 8 —
+      # wiring that up is a separate task. A successful build is the frontend's
+      # test signal (no unit tests yet). NEXT_PUBLIC_* placeholders just satisfy
+      # the build; real values are baked in at deploy time by deploy.sh.
       - run: npm run build --workspace=apps/web
         env:
           NEXT_PUBLIC_SUPABASE_URL: placeholder

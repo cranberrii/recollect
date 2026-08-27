@@ -1,15 +1,20 @@
 import asyncio
 import logging
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-logger = logging.getLogger(__name__)
-
-from app.core.deps import CurrentUser, CurrentUserId, SupabaseClient, get_supabase_client
+from app.core.deps import (
+    CurrentUser,
+    CurrentUserId,
+    SupabaseClient,
+    get_supabase_client,
+)
 from app.models.bookmark import BookmarkCreate, BookmarkResponse, BookmarkUpdate
 from app.services.embedding import get_embedding
 from app.services.llm_ai import generate_categories, summarize_content
 from app.services.scraper import scrape_url
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 

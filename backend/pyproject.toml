@@ -36,3 +36,6 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+# ponytail: line-length never enforced in this codebase; keep the real checks
+# (pyflakes bugs, import sorting), drop cosmetic wrapping. Re-enable if desired.
+ignore = ["E501"]
