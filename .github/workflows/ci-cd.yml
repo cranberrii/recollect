@@ -17,6 +17,10 @@ jobs:
     concurrency:
       group: test-backend-${{ github.ref }}
       cancel-in-progress: true
+    # Dummy key: the OpenAI client is built at import time and rejects an empty
+    # key. Not a secret — every API call is mocked in the tests.
+    env:
+      OPENROUTER_API_KEY: test-dummy-key
     defaults:
       run:
         working-directory: backend
