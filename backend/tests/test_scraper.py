@@ -1,16 +1,17 @@
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import httpx
+import pytest
+from bs4 import BeautifulSoup
 
 from app.services.scraper import (
-    scrape_url,
     ScrapedData,
-    _extract_title,
-    _extract_description,
     _extract_content,
+    _extract_description,
     _extract_favicon,
+    _extract_title,
+    scrape_url,
 )
-from bs4 import BeautifulSoup
 
 
 class TestExtractTitle:
