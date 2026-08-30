@@ -2,8 +2,9 @@ name: OpenWiki Update
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 8 * * *"
+  # Auto-run paused. Uncomment to re-enable the daily schedule.
+  # schedule:
+  #   - cron: "0 8 * * *"
 
 permissions:
   contents: write
