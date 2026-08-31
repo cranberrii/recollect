@@ -1,3 +1,9 @@
+---
+type: "Reference"
+title: "AI Integration"
+openwiki_generated: true
+---
+
 # AI Integration
 
 ## Embedding & Search

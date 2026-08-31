@@ -1,3 +1,9 @@
+---
+type: "Reference"
+title: "Supabase & Database"
+openwiki_generated: true
+---
+
 # Supabase & Database
 
 ## Overview

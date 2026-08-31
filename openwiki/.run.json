@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "runId": "994b1d99-c96f-40e1-be7d-234ba119ed1d",
+  "mode": "update",
+  "phase": "planning",
+  "startedAt": "2026-08-30T09:36:30.621Z",
+  "language": "en",
+  "languageChanged": false,
+  "requiredRewritePages": [],
+  "initialPages": [
+    "/openwiki/ai.md",
+    "/openwiki/architecture.md",
+    "/openwiki/backend.md",
+    "/openwiki/frontend.md",
+    "/openwiki/quickstart.md",
+    "/openwiki/supabase.md",
+    "/openwiki/testing.md"
+  ],
+  "sourceFingerprint": "sha256:69fbac8cfdd02b4006404c375774539a2d97f39ab3662c1c084ad43eb90fcd05",
+  "actor": {
+    "producerActor": "openwiki/0.4.3",
+    "metadataModel": "openai/gpt-5.6-luna"
+  },
+  "previousLastUpdate": null,
+  "wikiGoal": "A code wiki for this local repository. Prioritize a concise quickstart, architecture overview, source map, key workflows, domain concepts, operations/runbook notes, testing guidance, and integration points. Inspect git history to understand reasoning behind code changes and the progression of the repository. Keep pages grounded in the repository structure and recent code changes. Prefer practical navigation for engineers over generic summaries.",
+  "beforeContentSnapshot": "716e796f1427a236b5135d72f4765e1727b19290cf8e699d03d99afb16e026a5",
+  "preparedWiki": {
+    "generatedProvenance": [
+      {
+        "page": "/openwiki/ai.md",
+        "bodyHash": "e5fb8ba298a067a722d78a53b2a1cee6b817094d3ec37ad405e2e889c14f8452"
+      },
+      {
+        "page": "/openwiki/architecture.md",
+        "bodyHash": "2e37947ed24f8dcbc42ed756313107820a44ef0b8c02fa886fe13b149bdda5e1"
+      },
+      {
+        "page": "/openwiki/backend.md",
+        "bodyHash": "5baa52cf05d3a215f54cf891ce367eb55193f0663ce8bf3056d48e56c0fc7861"
+      },
+      {
+        "page": "/openwiki/frontend.md",
+        "bodyHash": "5f733f6dee435bdb078b19556d3715766013ee246f6a5aa6fab0e0d28095aa98"
+      },
+      {
+        "page": "/openwiki/quickstart.md",
+        "bodyHash": "fe4c7480fc83790e8308a24ee8238e2bb52376c54d50d0c1f3578e6c154b8665"
+      },
+      {
+        "page": "/openwiki/supabase.md",
+        "bodyHash": "ce327dc053d94a8b6a6a39056f4cfa627d03643caceabd2c20b5d3df5e79913f"
+      },
+      {
+        "page": "/openwiki/testing.md",
+        "bodyHash": "ed0eab23379a8d4e08fde177b2bfd773d2b41c3f6ec184b72942eb7d08e8c650"
+      }
+    ]
+  }
+}

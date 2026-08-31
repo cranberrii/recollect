@@ -1,8 +1,51 @@
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.services.llm_ai import generate_categories, summarize_content
+from app.services.llm_ai import (
+    enrich_bookmark,
+    generate_categories,
+    summarize_content,
+)
+
+DEPLOYED_BACKEND_MANIFEST = (
+    Path(__file__).parents[2] / "deploy" / "services" / "backend.yaml"
+)
+
+
+def test_deployment_does_not_use_retired_free_llm_model():
+    manifest = DEPLOYED_BACKEND_MANIFEST.read_text()
+
+    assert 'value: "nvidia/nemotron-3-nano-30b-a3b:free"' not in manifest
+
+
+class TestEnrichBookmark:
+    @pytest.mark.asyncio
+    async def test_returns_summary_and_categories_from_one_request(self):
+        mock_response = MagicMock()
+        mock_response.choices = [
+            MagicMock(
+                message=MagicMock(
+                    content='{"summary":"A concise summary.","categories":["Python","Async IO","Tutorial"]}'
+                )
+            )
+        ]
+
+        with patch("app.services.llm_ai.client") as mock_client:
+            mock_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+            result = await enrich_bookmark(
+                title="Learn asyncio",
+                description="A Python tutorial",
+                content="An article about asynchronous Python.",
+            )
+
+            assert result.summary == "A concise summary."
+            assert result.categories == ["python", "async io", "tutorial"]
+            mock_client.chat.completions.create.assert_awaited_once()
+            request = mock_client.chat.completions.create.call_args.kwargs
+            assert request["response_format"]["type"] == "json_schema"
 
 
 class TestGenerateCategories:

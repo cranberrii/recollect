@@ -1,3 +1,9 @@
+---
+type: "Reference"
+title: "Testing & CI"
+openwiki_generated: true
+---
+
 # Testing & CI
 
 ## Backend

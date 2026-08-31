@@ -11,7 +11,7 @@ from app.core.deps import (
 )
 from app.models.bookmark import BookmarkCreate, BookmarkResponse, BookmarkUpdate
 from app.services.embedding import get_embedding
-from app.services.llm_ai import generate_categories, summarize_content
+from app.services.llm_ai import enrich_bookmark
 from app.services.scraper import scrape_url
 
 logger = logging.getLogger(__name__)
@@ -78,6 +78,13 @@ async def _noop():
     return None
 
 
+async def _capture_exception(coroutine):
+    try:
+        return await coroutine
+    except Exception as error:
+        return error
+
+
 async def _process_bookmark_ai(
     bookmark_id: str,
     user_id: str,
@@ -91,33 +98,65 @@ async def _process_bookmark_ai(
     text_for_embedding = f"{title} {description} {content}".strip()
 
     AI_TIMEOUT = 360  # seconds
-    try:
-        summary, embedding, categories = await asyncio.wait_for(
-            asyncio.gather(
-                summarize_content(content) if content else _noop(),
-                get_embedding(text_for_embedding) if text_for_embedding else _noop(),
-                generate_categories(title=title, description=description, content=content),
-                return_exceptions=True,
-            ),
-            timeout=AI_TIMEOUT,
+    enrichment_task = asyncio.create_task(
+        _capture_exception(
+            enrich_bookmark(
+                title=title,
+                description=description,
+                content=content,
+            )
         )
-    except asyncio.TimeoutError:
+    )
+    embedding_task = asyncio.create_task(
+        _capture_exception(
+            get_embedding(text_for_embedding) if text_for_embedding else _noop()
+        )
+    )
+
+    try:
+        async with asyncio.timeout(AI_TIMEOUT):
+            enrichment = await enrichment_task
+
+            # Persist visible AI fields as soon as the LLM responds. Embedding
+            # generation remains concurrent and must not delay the UI.
+            if isinstance(enrichment, Exception):
+                logger.error(f"AI generation failed for {bookmark_id}: {enrichment}")
+            else:
+                if enrichment.summary:
+                    try:
+                        supabase.table("bookmarks").update(
+                            {"summary": enrichment.summary}
+                        ).eq("id", bookmark_id).execute()
+                        logger.info(f"Summary saved for {bookmark_id}")
+                    except Exception as e:
+                        logger.error(f"Summary save failed for {bookmark_id}: {e}")
+
+                try:
+                    if delete_existing_categories:
+                        supabase.table("bookmark_categories").delete().eq(
+                            "bookmark_id", bookmark_id
+                        ).execute()
+                    for category_name in enrichment.categories:
+                        category_id = get_or_create_category(
+                            supabase, user_id, category_name
+                        )
+                        supabase.table("bookmark_categories").insert({
+                            "bookmark_id": bookmark_id,
+                            "category_id": category_id,
+                        }).execute()
+                    logger.info(
+                        f"Categories saved for {bookmark_id}: {enrichment.categories}"
+                    )
+                except Exception as e:
+                    logger.error(f"Categories save failed for {bookmark_id}: {e}")
+
+            embedding = await embedding_task
+    except TimeoutError:
+        enrichment_task.cancel()
+        embedding_task.cancel()
         logger.error(f"AI enrichment timed out after {AI_TIMEOUT}s for {bookmark_id}")
         return
 
-    # Save summary
-    if isinstance(summary, str) and summary:
-        try:
-            supabase.table("bookmarks").update({"summary": summary}).eq("id", bookmark_id).execute()
-            logger.info(f"Summary saved for {bookmark_id}")
-        except Exception as e:
-            logger.error(f"Summary save failed for {bookmark_id}: {e}")
-    elif isinstance(summary, Exception):
-        logger.error(f"Summary generation failed for {bookmark_id}: {summary}")
-    else:
-        logger.info(f"Summary skipped for {bookmark_id} (no content)")
-
-    # Save embedding
     if isinstance(embedding, list):
         try:
             supabase.table("bookmark_embeddings").upsert({
@@ -131,23 +170,6 @@ async def _process_bookmark_ai(
         logger.error(f"Embedding generation failed for {bookmark_id}: {embedding}")
     else:
         logger.info(f"Embedding skipped for {bookmark_id} (no text)")
-
-    # Save categories
-    if isinstance(categories, list):
-        try:
-            if delete_existing_categories:
-                supabase.table("bookmark_categories").delete().eq("bookmark_id", bookmark_id).execute()
-            for category_name in categories:
-                category_id = get_or_create_category(supabase, user_id, category_name)
-                supabase.table("bookmark_categories").insert({
-                    "bookmark_id": bookmark_id,
-                    "category_id": category_id,
-                }).execute()
-            logger.info(f"Categories saved for {bookmark_id}: {categories}")
-        except Exception as e:
-            logger.error(f"Categories save failed for {bookmark_id}: {e}")
-    elif isinstance(categories, Exception):
-        logger.error(f"Category generation failed for {bookmark_id}: {categories}")
 
 
 @router.post("", response_model=BookmarkResponse)
