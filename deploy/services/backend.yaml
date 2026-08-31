@@ -32,7 +32,7 @@ spec:
             - name: EMBEDDING_MODEL
               value: "qwen/qwen3-embedding-8b"
             - name: LLM_MODEL
-              value: "nvidia/nemotron-3-nano-30b-a3b:free"
+              value: "nvidia/nemotron-3-super-120b-a12b:free"
             # Secrets fetched from Secret Manager at runtime
             - name: SUPABASE_SERVICE_ROLE_KEY
               valueFrom:

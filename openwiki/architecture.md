@@ -1,3 +1,9 @@
+---
+type: "Reference"
+title: "Architecture & Data Flow"
+openwiki_generated: true
+---
+
 # Architecture & Data Flow
 
 ## Main Components

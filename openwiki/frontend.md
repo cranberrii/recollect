@@ -1,3 +1,9 @@
+---
+type: "Reference"
+title: "Frontend & Extension"
+openwiki_generated: true
+---
+
 # Frontend & Extension
 
 ## Web App (apps/web)

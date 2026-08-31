@@ -1,6 +1,67 @@
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
+from app.api.v1.bookmarks import _process_bookmark_ai
+from app.services.llm_ai import BookmarkEnrichment
 from app.services.scraper import ScrapedData
+
+
+class TestProcessBookmarkAI:
+    @pytest.mark.asyncio
+    @patch("app.api.v1.bookmarks.get_supabase_client")
+    @patch("app.api.v1.bookmarks.get_embedding", new_callable=AsyncMock)
+    @patch("app.api.v1.bookmarks.enrich_bookmark", new_callable=AsyncMock)
+    async def test_persists_visible_enrichment_before_embedding_finishes(
+        self, mock_enrich, mock_embedding, mock_get_supabase
+    ):
+        embedding_started = asyncio.Event()
+        release_embedding = asyncio.Event()
+
+        async def delayed_embedding(_text):
+            embedding_started.set()
+            await release_embedding.wait()
+            return [0.1, 0.2]
+
+        mock_embedding.side_effect = delayed_embedding
+        mock_enrich.return_value = BookmarkEnrichment(
+            summary="Fast summary",
+            categories=["python"],
+        )
+        supabase = MagicMock()
+        supabase.table.return_value.select.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(
+            data=[{"id": "category-1"}]
+        )
+        mock_get_supabase.return_value = supabase
+
+        task = asyncio.create_task(
+            _process_bookmark_ai(
+                bookmark_id="bookmark-1",
+                user_id="user-1",
+                title="Title",
+                description="Description",
+                content="Content",
+            )
+        )
+        await embedding_started.wait()
+        await asyncio.sleep(0)
+
+        table_names = [args[0] for args, _kwargs in supabase.table.call_args_list]
+        assert "bookmarks" in table_names
+        assert "categories" in table_names
+        supabase.table("bookmarks").update.assert_called_once_with(
+            {"summary": "Fast summary"}
+        )
+        supabase.table("bookmark_embeddings").upsert.assert_not_called()
+
+        release_embedding.set()
+        await task
+
+        mock_enrich.assert_awaited_once_with(
+            title="Title", description="Description", content="Content"
+        )
+        supabase.table("bookmark_embeddings").upsert.assert_called_once()
 
 
 class TestListBookmarks:
