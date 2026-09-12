@@ -8,6 +8,7 @@ dist/
 out/
 build/
 wheels/
+*.tsbuildinfo
 
 # Environment
 .env
