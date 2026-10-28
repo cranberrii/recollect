@@ -59,7 +59,7 @@ Summarize the content in 2-3 sentences and suggest 3-5 relevant categories."""
                 },
             },
         },
-        extra_body={"reasoning": {"enabled": False}},
+        extra_body={"reasoning": {"effort": "low"}},
     )
 
     result = json.loads(response.choices[0].message.content or "{}")
@@ -87,7 +87,7 @@ Return all the tags as a comma-separated list only, nothing else."""
         model=settings.llm_model,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=512,
-        extra_body={"reasoning": {"enabled": False}}
+        extra_body={"reasoning": {"effort": "low"}}
     )
 
     tags_text = response.choices[0].message.content or ""
@@ -108,7 +108,7 @@ async def summarize_content(content: str) -> str:
         model=settings.llm_model,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=512,
-        extra_body={"reasoning": {"enabled": False}}
+        extra_body={"reasoning": {"effort": "low"}}
     )
 
     return response.choices[0].message.content or ""
