@@ -80,8 +80,10 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - 'deploy/services/backend.yaml'
             web:
               - 'apps/web/**'
+              - 'deploy/services/web.yaml'
               - 'package.json'
               - 'package-lock.json'
 
