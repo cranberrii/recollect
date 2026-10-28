@@ -147,7 +147,7 @@ Key tables: `bookmarks`, `bookmark_embeddings`, `categories`, `bookmark_categori
 - `deploy/setup.sh` — one-time GCP setup (service accounts, secrets, registry)
 - `deploy/deploy.sh` — build, push, and deploy both services
 - `deploy/services/backend.yaml` / `web.yaml` — Cloud Run service specs
-- Prod models (override defaults): `EMBEDDING_MODEL=qwen/qwen3-embedding-8b`, `LLM_MODEL=nvidia/nemotron-3-nano-30b-a3b:free`
+- Prod models (override defaults): `EMBEDDING_MODEL=qwen/qwen3-embedding-8b`, `LLM_MODEL=z-ai/glm-5.3-flash` (set in `deploy/services/backend.yaml`; local `.env` uses `nvidia/nemotron-3-nano-30b-a3b:free`)
 
 ## Guest Users
 
