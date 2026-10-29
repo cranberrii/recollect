@@ -5,7 +5,9 @@ import { QuickStats } from '@/components/dashboard/quick-stats';
 import { BookmarkSection } from '@/components/bookmarks/bookmark-section';
 import { HealthCheck } from '@/components/dashboard/health-check';
 
-export default async function DashboardPage() {
+const PAGE_SIZE = 20;
+
+export default async function DashboardPage({ searchParams }: { searchParams: { page?: string } }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -13,7 +15,15 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  // Fetch bookmarks with categories (limited list for display)
+  // Total count (not capped by display limit)
+  const { count: totalBookmarks } = await supabase
+    .from('bookmarks')
+    .select('*', { count: 'exact', head: true });
+
+  const totalPages = Math.max(1, Math.ceil((totalBookmarks ?? 0) / PAGE_SIZE));
+  const page = Math.min(totalPages, Math.max(1, parseInt(searchParams.page ?? '1', 10) || 1));
+
+  // Fetch one page of bookmarks with categories
   const { data: bookmarks } = await supabase
     .from('bookmarks')
     .select(`
@@ -25,18 +35,13 @@ export default async function DashboardPage() {
       )
     `)
     .order('created_at', { ascending: false })
-    .limit(20);
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
   // Date boundaries for stats
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-
-  // Total count (not capped by display limit)
-  const { count: totalBookmarks } = await supabase
-    .from('bookmarks')
-    .select('*', { count: 'exact', head: true });
 
   const { count: recentlyAdded } = await supabase
     .from('bookmarks')
@@ -97,7 +102,7 @@ export default async function DashboardPage() {
     >
       <HealthCheck />
       <QuickStats stats={stats} />
-      <BookmarkSection initialBookmarks={bookmarks || []} totalBookmarks={totalBookmarks ?? 0} />
+      <BookmarkSection initialBookmarks={bookmarks || []} totalBookmarks={totalBookmarks ?? 0} page={page} totalPages={totalPages} />
     </DashboardLayout>
   );
 }
