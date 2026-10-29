@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { SearchBar } from './search-bar';
 import { AddBookmarkForm } from './add-bookmark-form';
@@ -41,6 +42,8 @@ interface SearchResult {
 interface BookmarkSectionProps {
   initialBookmarks: Bookmark[];
   totalBookmarks?: number;
+  page?: number;
+  totalPages?: number;
 }
 
 function formatDate(dateString: string | null): string {
@@ -65,6 +68,43 @@ function getDomain(url: string): string {
   }
 }
 
+// First, last, and current ±1; gaps collapse to an ellipsis.
+function pageItems(page: number, totalPages: number): (number | '…')[] {
+  const items: (number | '…')[] = [];
+  for (let p = 1; p <= totalPages; p++) {
+    if (p === 1 || p === totalPages || Math.abs(p - page) <= 1) items.push(p);
+    else if (items[items.length - 1] !== '…') items.push('…');
+  }
+  return items;
+}
+
+function Pagination({ page, totalPages }: { page: number; totalPages: number }) {
+  const href = (p: number) => (p === 1 ? '/dashboard' : `/dashboard?page=${p}`);
+  const base = 'min-w-9 h-9 px-3 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors';
+  const idle = 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800';
+
+  return (
+    <nav aria-label="Pagination" className="flex flex-wrap items-center justify-center gap-1 mt-8">
+      {page > 1 && <Link href={href(page - 1)} className={`${base} ${idle}`}>Prev</Link>}
+      {pageItems(page, totalPages).map((item, i) =>
+        item === '…' ? (
+          <span key={`gap-${i}`} className="px-2 text-surface-400">…</span>
+        ) : (
+          <Link
+            key={item}
+            href={href(item)}
+            aria-current={item === page ? 'page' : undefined}
+            className={`${base} ${item === page ? 'bg-surface-900 text-white dark:bg-surface-100 dark:text-surface-900' : idle}`}
+          >
+            {item}
+          </Link>
+        )
+      )}
+      {page < totalPages && <Link href={href(page + 1)} className={`${base} ${idle}`}>Next</Link>}
+    </nav>
+  );
+}
+
 const PENDING_WINDOW_MS = 180_000;
 
 function isEnriched(b: Pick<Bookmark, 'summary' | 'bookmark_categories'>): boolean {
@@ -75,7 +115,7 @@ function isPending(b: Bookmark): boolean {
   return !isEnriched(b) && Date.now() - new Date(b.created_at).getTime() < PENDING_WINDOW_MS;
 }
 
-export function BookmarkSection({ initialBookmarks, totalBookmarks }: BookmarkSectionProps) {
+export function BookmarkSection({ initialBookmarks, totalBookmarks, page = 1, totalPages = 1 }: BookmarkSectionProps) {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>(initialBookmarks);
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -365,6 +405,8 @@ export function BookmarkSection({ initialBookmarks, totalBookmarks }: BookmarkSe
           )}
         </div>
       )}
+
+      {!showingSearchResults && totalPages > 1 && <Pagination page={page} totalPages={totalPages} />}
     </>
   );
 }
